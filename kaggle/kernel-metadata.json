@@ -1,0 +1,14 @@
+{
+  "id": "freedomform/wet-ink-nemotron-3b",
+  "title": "wet-ink-nemotron-3b",
+  "code_file": "kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [],
+  "model_sources": []
+}

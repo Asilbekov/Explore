@@ -1,0 +1,14 @@
+# build artifacts
+local_model_repo/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# model weights (never commit)
+*.safetensors
+*.bin
+*.pt
+
+# scratch
+.ipynb_checkpoints/
+.DS_Store
