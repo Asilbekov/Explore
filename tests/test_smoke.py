@@ -1,18 +1,22 @@
-"""CPU smoke test of wet_ink.generate_wet_ink on a tiny random-weight
-Nemotron-Labs-Diffusion (the EXACT architecture files of the 3B model).
+"""CPU smoke test of wet_ink v2 on a tiny random-weight Nemotron-Labs-Diffusion
+(the EXACT architecture files of the 3B model).
 
 Checks:
-  1. stock model.generate() runs on the tiny model;
-  2. EQUIVALENCE: generate_wet_ink(revision_blocks=0) is bit-identical to stock
-     generate() (ids AND nfe), including the EOS early-stop path;
-  3. wet-ink W=1 / W=2 / fixed1 / causal_context=False run without crashing,
-     never leave [MASK] in the output, and terminate well under the safety cap;
-  4. re-masking actually fires on a random model (confidence ~ 1/vocab << 0.9);
-  5. KV-CACHE INVARIANT: after a wet-ink run with cache surgery (crop+rebuild),
-     the final cache equals a fresh causal forward over the final sequence
-     (i.e. revised tokens were correctly written back into the cache);
-  6. batch B=2 equivalence;
-  7. determinism at temperature 0.
+  1.  stock model.generate() runs on the tiny model;
+  2.  EQUIVALENCE: generate_wet_ink(revision_blocks=0) is bit-identical to stock
+      generate() (ids AND nfe), including the EOS early-stop path — for every
+      policy (revision_blocks=0 forces the stock path);
+  3.  reme_di (RemeDi loop): runs, no [MASK] left, EXACTLY denoise_steps
+      forwards per block (termination by construction), revision happens;
+  4.  reme_di with criterion='entropy' (Dream/NVlabs score) runs and ranks
+      differently from 'confidence';
+  5.  codr: runs, no [MASK] left, probe forwards == num_partitions per
+      windowed block, drift remasking fires on a random model, bounded NFE;
+  6.  per_step (v1 legacy): still runs (churn + tail expected on random
+      weights) — kept for reproducibility of the v1 measurements;
+  7.  KV-CACHE INVARIANT for the new policies: after crop+rebuild the final
+      cache equals a fresh causal forward over the final sequence;
+  8.  batch B=2 equivalence; determinism at temperature 0.
 """
 
 import os
@@ -61,15 +65,20 @@ def main():
     check("stock generate runs", out_stock.shape == (1, 16 + 64), f"nfe={nfe_stock}")
     check("stock output has no [MASK]", not bool((out_stock == mask_id).any()))
 
-    # ---- 2. equivalence W=0 ----
-    out0, nfe0 = generate_wet_ink(model, prompt, revision_blocks=0, **gen_kwargs)
-    check("W=0 identical ids to stock", bool(torch.equal(out_stock, out0)))
-    check("W=0 identical nfe to stock", nfe_stock == nfe0, f"{nfe_stock} vs {nfe0}")
+    # ---- 2. equivalence W=0 (all policies force the stock path) ----
+    for pol in ("none", "reme_di", "codr", "per_step"):
+        out0, nfe0 = generate_wet_ink(
+            model, prompt, revision_blocks=0, remask_policy=pol, **gen_kwargs
+        )
+        check(f"W=0 policy={pol}: identical ids to stock",
+              bool(torch.equal(out_stock, out0)))
+        check(f"W=0 policy={pol}: identical nfe to stock",
+              nfe_stock == nfe0, f"{nfe_stock} vs {nfe0}")
 
-    # ---- 2b. equivalence on the EOS early-stop path ----
-    # pick a token that certainly appears in the stock output -> EOS must fire
+    # EOS early-stop path
     eos_probe = int(out_stock[0, 20].item())
-    out_stock_eos, nfe_stock_eos = model.generate(prompt, eos_token_id=eos_probe, **gen_kwargs)
+    out_stock_eos, nfe_stock_eos = model.generate(
+        prompt, eos_token_id=eos_probe, **gen_kwargs)
     out0_eos, nfe0_eos = generate_wet_ink(
         model, prompt, revision_blocks=0, eos_token_id=eos_probe, **gen_kwargs
     )
@@ -79,104 +88,127 @@ def main():
     check("EOS truncation actually fired", out_stock_eos.shape[1] < 16 + 64,
           f"len={out_stock_eos.shape[1]}")
 
-    # ---- 3/4. wet-ink windows ----
-    # NOTE: on a RANDOM model all confidences ~ 1/vocab << 0.9, so remasking
-    # churns (every committed window token is immediately re-masked) and the
-    # safety tail is expected to be used. A REAL model has confidences > 0.9,
-    # where remasking fires rarely; the threshold=0.0 control below mimics that.
-    for W in (1, 2):
-        out_w, nfe_w, st = generate_wet_ink(
-            model, prompt, revision_blocks=W, return_stats=True, **gen_kwargs
-        )
-        check(f"W={W} runs, no [MASK] left", not bool((out_w == mask_id).any()))
-        check(f"W={W} remasking fired", st["remask_events"] > 0,
-              f"remask_events={st['remask_events']}")
-        check(f"W={W} revised tokens in window", st["revision_token_changes"] > 0,
-              f"changes={st['revision_token_changes']}")
-        check(f"W={W} output fully denoised (tail cleared masks)",
-              not bool((out_w == mask_id).any()))
-        print(f"       W={W} stats: tail={st['safety_tail_steps']}, "
-              f"blocks_with_remask={st['blocks_with_remask']}, "
-              f"commits={st['commit_events']}, denoise_fw={st['denoise_forwards']}, "
-              f"post_fw={st['post_block_forwards']}, nfe={nfe_w} (stock {nfe_stock})")
-
-    # control: threshold=0.0 -> every confidence passes -> remasking never fires
-    # -> no churn -> safety tail must stay at zero (stock-like step count)
-    out_c, nfe_c, st_c = generate_wet_ink(
-        model, prompt, revision_blocks=1, threshold=0.0,
-        return_stats=True, max_new_tokens=64, block_length=32,
-    )
-    check("control thr=0.0: remasking inert", st_c["remask_events"] == 0)
-    check("control thr=0.0: safety tail unused", st_c["safety_tail_steps"] == 0,
-          f"tail={st_c['safety_tail_steps']}")
-    check("control thr=0.0: no [MASK] left", not bool((out_c == mask_id).any()))
-
-    # ---- fixed1 commit mode ----
-    out_f1, nfe_f1, st_f1 = generate_wet_ink(
-        model, prompt, revision_blocks=1, commit="fixed1",
-        threshold=None, return_stats=True, max_new_tokens=64, block_length=32,
-    )
-    check("fixed1 W=1 runs, no [MASK] left", not bool((out_f1 == mask_id).any()))
-    check("fixed1 nfe >= span steps", nfe_f1 >= 64, f"nfe={nfe_f1}")
-
-    # ---- causal_context=False path ----
-    out_nc, nfe_nc, st_nc = generate_wet_ink(
-        model, prompt, revision_blocks=1, causal_context=False,
+    # ---- 3. reme_di ----
+    out_r, nfe_r, st_r = generate_wet_ink(
+        model, prompt, revision_blocks=1, remask_policy="reme_di",
         return_stats=True, **gen_kwargs
     )
-    check("causal_context=False runs", out_nc.shape == (1, 80), f"nfe={nfe_nc}")
-    check("causal_context=False no [MASK] left", not bool((out_nc == mask_id).any()))
+    check("reme_di W=1 runs, no [MASK] left", not bool((out_r == mask_id).any()))
+    check("reme_di remasking fired (re-liquefaction)", st_r["remask_events"] > 0,
+          f"remask_events={st_r['remask_events']}")
+    check("reme_di revised tokens in window", st_r["revision_token_changes"] > 0,
+          f"changes={st_r['revision_token_changes']}")
+    # termination by construction: exactly denoise_steps denoise forwards per
+    # block (2 blocks here: block 0 has no window, block 1 has W=1) + 1
+    # post-block forward each
+    n_blocks = 64 // 32
+    check("reme_di exact step count (no tail, no cap)",
+          st_r["denoise_forwards"] == n_blocks * 32,
+          f"denoise_fw={st_r['denoise_forwards']} expected={n_blocks * 32}")
+    check("reme_di no safety tail", st_r["safety_tail_steps"] == 0)
+    check("reme_di no hard caps", st_r["hard_cap_hits"] == 0)
+    check("reme_di NFE bound", nfe_r <= n_blocks * (32 + 1),
+          f"nfe={nfe_r} <= {n_blocks * 33}")
+    print(f"       reme_di stats: remask={st_r['remask_events']}, "
+          f"changes={st_r['revision_token_changes']}, "
+          f"denoise_fw={st_r['denoise_forwards']}, post_fw={st_r['post_block_forwards']}, "
+          f"nfe={nfe_r} (stock {nfe_stock})")
 
-    # ---- 5. KV-cache invariant (crop + rebuild correctness) ----
-    out_w1, nfe_w1, st_w1 = generate_wet_ink(
-        model, prompt, revision_blocks=1, return_stats=True, **gen_kwargs
+    # ---- 4. reme_di + entropy criterion ----
+    out_e, nfe_e, st_e = generate_wet_ink(
+        model, prompt, revision_blocks=1, remask_policy="reme_di",
+        criterion="entropy", return_stats=True, **gen_kwargs
     )
-    gen_cache = st_w1["_final_cache"]
-    # Reference: fresh CAUSAL forward over the final sequence.
-    # NOTE: stock generate() leaves diffusion_lm=True on exit, so we must
-    # explicitly switch the attention to causal mode for the reference pass
-    # (same toggle ar_generate uses).
-    for layer in model.encoder.layers:
-        if hasattr(layer.self_attn, "diffusion_lm"):
-            layer.self_attn.diffusion_lm = False
-    fresh = model(out_w1, use_cache=True, use_causal_mask=True)
-    fresh_cache = fresh.past_key_values
-    ok = True
-    max_err = 0.0
-    n_layers = len(gen_cache.layers)
-    for l in range(n_layers):
-        for kind in ("keys", "values"):
-            a = getattr(gen_cache.layers[l], kind)
-            b = getattr(fresh_cache.layers[l], kind)
-            if a.shape != b.shape:
-                ok = False
-                break
-            err = (a - b).abs().max().item()
-            max_err = max(max_err, err)
-            if err > 1e-4:
-                ok = False
-    check("cache invariant: final cache == fresh causal forward", ok,
-          f"max_abs_err={max_err:.2e}, layers={n_layers}, "
-          f"seq={gen_cache.get_seq_length()} vs {fresh_cache.get_seq_length()}")
+    check("reme_di entropy runs, no [MASK]", not bool((out_e == mask_id).any()))
+    check("reme_di entropy exact step count",
+          st_e["denoise_forwards"] == n_blocks * 32,
+          f"denoise_fw={st_e['denoise_forwards']}")
+    check("reme_di entropy ranks differently (random model)",
+          not bool(torch.equal(out_r, out_e)),
+          "outputs differ" if not torch.equal(out_r, out_e) else "SAME (suspicious)")
 
-    # ---- 6. batch=2 equivalence ----
+    # ---- 5. codr ----
+    out_c, nfe_c, st_c = generate_wet_ink(
+        model, prompt, revision_blocks=1, remask_policy="codr",
+        return_stats=True, **gen_kwargs
+    )
+    check("codr W=1 runs, no [MASK] left", not bool((out_c == mask_id).any()))
+    check("codr probes == partitions per windowed block",
+          st_c["codr_probe_forwards"] == 1 * 2,  # only block 1 has a window
+          f"probes={st_c['codr_probe_forwards']}")
+    check("codr drift remasking fired", st_c["codr_drift_remasks"] > 0,
+          f"drift_remasks={st_c['codr_drift_remasks']}")
+    check("codr no safety tail", st_c["safety_tail_steps"] == 0)
+    check("codr bounded NFE",
+          nfe_c <= n_blocks * (32 + 1) + st_c["codr_probe_forwards"] + 64,
+          f"nfe={nfe_c}")
+    print(f"       codr stats: probes={st_c['codr_probe_forwards']}, "
+          f"drift={st_c['codr_drift_remasks']}, refill_fw={st_c['codr_refill_forwards']}, "
+          f"nfe={nfe_c}")
+
+    # ---- 6. per_step (v1 legacy) ----
+    out_p, nfe_p, st_p = generate_wet_ink(
+        model, prompt, revision_blocks=1, remask_policy="per_step",
+        return_stats=True, **gen_kwargs
+    )
+    check("per_step W=1 runs, no [MASK] left", not bool((out_p == mask_id).any()))
+    check("per_step remasking fired", st_p["remask_events"] > 0)
+    check("per_step v1 churn present on random model (documented)",
+          st_p["safety_tail_steps"] > 0 or st_p["hard_cap_hits"] > 0,
+          f"tail={st_p['safety_tail_steps']}, caps={st_p['hard_cap_hits']}")
+    print(f"       per_step stats: remask={st_p['remask_events']}, "
+          f"tail={st_p['safety_tail_steps']}, caps={st_p['hard_cap_hits']}, "
+          f"nfe={nfe_p} (=> the v1 behaviour, for reproducibility)")
+
+    # ---- 7. KV-cache invariant (crop + rebuild) for both new policies ----
+    for pol in ("reme_di", "codr"):
+        out_x, _, st_x = generate_wet_ink(
+            model, prompt, revision_blocks=1, remask_policy=pol,
+            return_stats=True, **gen_kwargs
+        )
+        gen_cache = st_x["_final_cache"]
+        for layer in model.encoder.layers:
+            if hasattr(layer.self_attn, "diffusion_lm"):
+                layer.self_attn.diffusion_lm = False
+        fresh = model(out_x, use_cache=True, use_causal_mask=True)
+        fresh_cache = fresh.past_key_values
+        ok = True
+        max_err = 0.0
+        for l in range(len(gen_cache.layers)):
+            for kind in ("keys", "values"):
+                a = getattr(gen_cache.layers[l], kind)
+                b = getattr(fresh_cache.layers[l], kind)
+                if a.shape != b.shape:
+                    ok = False
+                    break
+                err = (a - b).abs().max().item()
+                max_err = max(max_err, err)
+                if err > 1e-4:
+                    ok = False
+        check(f"cache invariant ({pol}): final cache == fresh causal forward",
+              ok, f"max_abs_err={max_err:.2e}")
+
+    # ---- 8. batch=2 + determinism ----
     prompt2 = torch.randint(200, 2000, (2, 12))
     outs, nfes = model.generate(prompt2, **gen_kwargs)
-    outb, nfeb = generate_wet_ink(model, prompt2, revision_blocks=0, **gen_kwargs)
+    outb, nfeb = generate_wet_ink(
+        model, prompt2, revision_blocks=0, remask_policy="reme_di", **gen_kwargs
+    )
     check("B=2 W=0 identical ids", bool(torch.equal(outs, outb)))
     check("B=2 W=0 identical nfe", nfes == nfeb)
 
-    outb1, nfeb1, stb1 = generate_wet_ink(
-        model, prompt2, revision_blocks=1, return_stats=True, **gen_kwargs
+    outb1, _, stb1 = generate_wet_ink(
+        model, prompt2, revision_blocks=1, remask_policy="reme_di",
+        return_stats=True, **gen_kwargs
     )
-    check("B=2 W=1 runs, no [MASK]", not bool((outb1 == mask_id).any()),
+    check("B=2 reme_di runs, no [MASK]", not bool((outb1 == mask_id).any()),
           f"remask={stb1['remask_events']}")
 
-    # ---- 7. determinism ----
-    out_w1b, _, _ = generate_wet_ink(
-        model, prompt, revision_blocks=1, return_stats=True, **gen_kwargs
+    out_r2, _, _ = generate_wet_ink(
+        model, prompt, revision_blocks=1, remask_policy="reme_di",
+        return_stats=True, **gen_kwargs
     )
-    check("W=1 deterministic at temp=0", bool(torch.equal(out_w1, out_w1b)))
+    check("reme_di deterministic at temp=0", bool(torch.equal(out_r, out_r2)))
 
     print()
     if FAILURES:

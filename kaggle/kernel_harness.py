@@ -1,13 +1,19 @@
-# ====================== KAGGLE HARNESS (appended after wet_ink.py) ======================
-# Experiment: stock block-diffusion decoding vs wet-ink revision windows on the
-# FULL nvidia/Nemotron-Labs-Diffusion-3B (no retraining).
+# ====================== KAGGLE HARNESS v2 (appended after wet_ink.py) ======================
+# Experiment: stock block-diffusion decoding vs PUBLISHED bounded-remasking
+# mechanisms (RemeDi ICLR'26 loop, CoDR EMNLP'26 drift pass) on the FULL
+# nvidia/Nemotron-Labs-Diffusion-3B (no retraining).
 #
 #   1. sanity chat (stock generate, chat defaults block_length=32, threshold=0.9)
 #   2. equivalence: generate_wet_ink(revision_blocks=0) must reproduce stock
-#      generate() bit-for-bit (ids AND nfe) at temperature 0
+#      generate() bit-for-bit (ids AND nfe) at temperature 0 — for every policy
 #   3. qualitative: side-by-side outputs + revision statistics on 3 prompts
-#   4. GSM8K A/B (protocol mirrors the official evaluate.py): stock / W=1 / W=2
-#      (+ threshold ablations if the time budget allows)
+#   4. GSM8K A/B (protocol mirrors the official evaluate.py):
+#        stock                      — baseline (v1-comparable)
+#        remedi_w1_s32_conf         — RemeDi loop, stock step density
+#        remedi_w1_s16_conf         — RemeDi loop, halved steps
+#        remedi_w1_s16_entropy      — RemeDi loop + Dream entropy criterion
+#        codr_w1_t0.9               — CoDR drift pass after each block
+#        remedi_w2_s16_conf         — window scaling W=2 (if time allows)
 #
 # All results -> /kaggle/working/results.json (+ this log).
 
@@ -33,7 +39,7 @@ from transformers import AutoModel, AutoTokenizer  # noqa: E402
 MODEL_ID = "nvidia/Nemotron-Labs-Diffusion-3B"
 OUT_DIR = "/kaggle/working" if os.path.isdir("/kaggle/working") else "."
 RESULTS_PATH = os.path.join(OUT_DIR, "results.json")
-TIME_LIMIT_S = 6.0 * 3600  # keep well inside the kernel limit
+TIME_LIMIT_S = 5.5 * 3600  # keep well inside the kernel limit
 T0 = time.time()
 
 RESULTS = {"meta": {}, "sanity": {}, "equivalence": {}, "qualitative": [], "gsm8k": {}}
@@ -118,17 +124,29 @@ RESULTS["meta"]["dtype_final"] = str(dtype)
 dump()
 
 # ---------------------------------------------------------------- 2. equivalence
-log("equivalence check: stock vs wet_ink(revision_blocks=0)")
-eq = {"ids_equal": [], "nfe_equal": [], "nfes_stock": [], "nfes_w0": []}
+log("equivalence check: stock vs wet_ink(revision_blocks=0) for every policy")
+eq = {"ids_equal": [], "nfe_equal": [], "nfes_stock": [], "nfes_w0": {}}
 for i, q in enumerate(SANITY):
     ids = chat_ids(q)
     o_s, n_s = model.generate(ids, eos_token_id=eos, **GEN_KW)
-    o_w, n_w = generate_wet_ink(model, ids, revision_blocks=0, eos_token_id=eos, **GEN_KW)
-    eq["ids_equal"].append(bool(torch.equal(o_s, o_w)))
-    eq["nfe_equal"].append(n_s == n_w)
+    eq["ids_equal"].append(True)
+    eq["nfe_equal"].append(True)
     eq["nfes_stock"].append(int(n_s))
-    eq["nfes_w0"].append(int(n_w))
-    log(f"eq[{i}] ids_equal={eq['ids_equal'][-1]} nfe {n_s} vs {n_w}")
+    eq["nfes_w0"][f"prompt{i}"] = {}
+    for pol in ("reme_di", "codr", "per_step"):
+        o_w, n_w = generate_wet_ink(
+            model, ids, revision_blocks=0, remask_policy=pol,
+            eos_token_id=eos, **GEN_KW
+        )
+        ok_ids = bool(torch.equal(o_s, o_w))
+        ok_nfe = n_s == n_w
+        eq["nfes_w0"][f"prompt{i}"][pol] = dict(
+            ids_equal=ok_ids, nfe_equal=ok_nfe, nfe=int(n_w)
+        )
+        if not ok_ids or not ok_nfe:
+            eq["ids_equal"][-1] = False
+            eq["nfe_equal"][-1] = False
+        log(f"eq[{i}] policy={pol}: ids_equal={ok_ids} nfe {n_s} vs {n_w}")
 RESULTS["equivalence"] = eq
 dump()
 
@@ -145,23 +163,27 @@ for q in QUAL:
     entry["stock"] = dict(
         text=tok.decode(o_s[0, ids.shape[1]:], skip_special_tokens=True)[:1500], nfe=int(n_s)
     )
-    o_w, n_w, st = generate_wet_ink(
-        model, ids, revision_blocks=1, eos_token_id=eos, return_stats=True, **GEN_KW
-    )
-    entry["wet_ink_w1"] = dict(
-        text=tok.decode(o_w[0, ids.shape[1]:], skip_special_tokens=True)[:1500],
-        nfe=int(n_w),
-        remask_events=st["remask_events"],
-        revision_token_changes=st["revision_token_changes"],
-        blocks_with_remask=st["blocks_with_remask"],
-        safety_tail_steps=st["safety_tail_steps"],
-        per_block=st["per_block"],
-    )
+    for tag, kw in (
+        ("reme_di_s32", dict(remask_policy="reme_di")),
+        ("codr", dict(remask_policy="codr")),
+    ):
+        o_w, n_w, st = generate_wet_ink(
+            model, ids, revision_blocks=1, eos_token_id=eos, return_stats=True,
+            **{**GEN_KW, **kw},
+        )
+        entry[tag] = dict(
+            text=tok.decode(o_w[0, ids.shape[1]:], skip_special_tokens=True)[:1500],
+            nfe=int(n_w),
+            remask_events=st["remask_events"],
+            revision_token_changes=st["revision_token_changes"],
+            blocks_with_remask=st["blocks_with_remask"],
+            codr_drift_remasks=st["codr_drift_remasks"],
+            per_block=st["per_block"][:6],
+        )
     entry["n_tokens_changed_vs_stock"] = int(
         (o_s[0, ids.shape[1]:] != o_w[0, ids.shape[1]:]).sum().item()
     ) if o_s.shape == o_w.shape else None
-    log(f"qual: {q[:40]!r} | stock nfe={n_s} wet nfe={n_w} "
-        f"remask={st['remask_events']} revised={st['revision_token_changes']}")
+    log(f"qual: {q[:40]!r} | stock nfe={n_s}")
     RESULTS["qualitative"].append(entry)
     dump()
 
@@ -209,7 +231,8 @@ def get_ds():
 
 
 def run_config(name, mode, limit=50, max_new_tokens=512, block_length=32,
-               threshold=0.9, revision_blocks=1):
+               threshold=0.9, revision_blocks=1, remask_policy="reme_di",
+               criterion="confidence", denoise_steps=None, drift_threshold=0.0):
     if time.time() - T0 > TIME_LIMIT_S:
         log(f"SKIP {name}: time budget exhausted")
         RESULTS["gsm8k"][name] = {"skipped": "time budget"}
@@ -218,13 +241,15 @@ def run_config(name, mode, limit=50, max_new_tokens=512, block_length=32,
     ds = get_ds()
     n = min(limit, len(ds))
     log(f"config {name}: mode={mode} limit={n} max_new={max_new_tokens} "
-        f"block={block_length} thr={threshold} W={revision_blocks if mode=='wet' else 0}")
+        f"block={block_length} policy={remask_policy} crit={criterion} "
+        f"steps={denoise_steps} thr={threshold} W={revision_blocks if mode=='wet' else 0}")
     t0 = time.time()
     correct = 0
     tot_tok = 0
     tot_nfe = 0
     agg = dict(remask_events=0, revision_token_changes=0, blocks_with_remask=0,
-               safety_tail_steps=0, hard_cap_hits=0)
+               safety_tail_steps=0, hard_cap_hits=0, codr_probe_forwards=0,
+               codr_drift_remasks=0, codr_refill_forwards=0)
     details = []
     for i in range(n):
         row = ds[i]
@@ -240,7 +265,9 @@ def run_config(name, mode, limit=50, max_new_tokens=512, block_length=32,
             else:
                 out, nfe, st = generate_wet_ink(
                     model, ids, max_new_tokens=max_new_tokens, block_length=block_length,
-                    revision_blocks=revision_blocks, threshold=threshold,
+                    revision_blocks=revision_blocks, remask_policy=remask_policy,
+                    criterion=criterion, denoise_steps=denoise_steps,
+                    threshold=threshold, drift_threshold=drift_threshold,
                     eos_token_id=eos, max_thinking_tokens=6000, return_stats=True,
                 )
             new = out[0, ids.shape[1]:]
@@ -255,6 +282,9 @@ def run_config(name, mode, limit=50, max_new_tokens=512, block_length=32,
                 agg["blocks_with_remask"] += st["blocks_with_remask"]
                 agg["safety_tail_steps"] += st["safety_tail_steps"]
                 agg["hard_cap_hits"] += st.get("hard_cap_hits", 0)
+                agg["codr_probe_forwards"] += st["codr_probe_forwards"]
+                agg["codr_drift_remasks"] += st["codr_drift_remasks"]
+                agg["codr_refill_forwards"] += st["codr_refill_forwards"]
             if i < 5 or (i + 1) % 10 == 0:
                 log(f"  {name}[{i+1}/{n}] ok={int(ok)} tok={int(new.numel())} nfe={nfe} acc={100.0*correct/(i+1):.1f}%")
             details.append(dict(i=i, ok=bool(ok), n_tokens=int(new.numel()), nfe=int(nfe),
@@ -266,6 +296,8 @@ def run_config(name, mode, limit=50, max_new_tokens=512, block_length=32,
     total = len([d for d in details if "error" not in d])
     res = dict(
         mode=mode, revision_blocks=revision_blocks if mode == "wet" else 0,
+        remask_policy=remask_policy if mode == "wet" else "stock",
+        criterion=criterion, denoise_steps=denoise_steps,
         block_length=block_length, threshold=threshold, limit=n,
         accuracy=100.0 * correct / max(total, 1),
         avg_tokens=tot_tok / max(total, 1),
@@ -279,25 +311,28 @@ def run_config(name, mode, limit=50, max_new_tokens=512, block_length=32,
     log(f"== {name}: acc={res['accuracy']:.2f}% avg_tok={res['avg_tokens']:.1f} "
         f"avg_nfe={res['avg_nfe']:.1f} TPF={res['tpf']:.2f} wall={res['wall_seconds']:.0f}s "
         f"remask={agg['remask_events']} revised={agg['revision_token_changes']} "
-        f"tail={agg['safety_tail_steps']} cap_hits={agg['hard_cap_hits']}")
+        f"drift={agg['codr_drift_remasks']}")
     dump()
 
 
 run_config("stock_b32_t0.9", "stock", threshold=0.9)
-run_config("wet_w1_t0.9", "wet", revision_blocks=1, threshold=0.9)
-run_config("wet_w2_t0.9", "wet", revision_blocks=2, threshold=0.9)
-run_config("wet_w1_t0.8", "wet", revision_blocks=1, threshold=0.8)
-run_config("wet_w1_t0.95", "wet", revision_blocks=1, threshold=0.95)
+run_config("remedi_w1_s32_conf", "wet", remask_policy="reme_di", denoise_steps=32)
+run_config("remedi_w1_s16_conf", "wet", remask_policy="reme_di", denoise_steps=16)
+run_config("remedi_w1_s16_entropy", "wet", remask_policy="reme_di",
+           criterion="entropy", denoise_steps=16)
+run_config("codr_w1_t0.9", "wet", remask_policy="codr", threshold=0.9)
+run_config("remedi_w2_s16_conf", "wet", remask_policy="reme_di",
+           denoise_steps=16, revision_blocks=2)
 
 # ---------------------------------------------------------------- summary
 log("=========== SUMMARY ===========")
-log(f"{'config':<18}{'acc%':>7}{'avg_tok':>9}{'avg_nfe':>9}{'TPF':>7}{'remask':>8}{'revised':>9}{'wall_s':>8}")
+log(f"{'config':<22}{'acc%':>7}{'avg_tok':>9}{'avg_nfe':>9}{'TPF':>7}{'remask':>8}{'revised':>9}{'drift':>7}{'wall_s':>8}")
 for name, r in RESULTS["gsm8k"].items():
     if "skipped" in r:
-        log(f"{name:<18} SKIPPED")
+        log(f"{name:<22} SKIPPED")
         continue
-    log(f"{name:<18}{r['accuracy']:>7.2f}{r['avg_tokens']:>9.1f}{r['avg_nfe']:>9.1f}"
+    log(f"{name:<22}{r['accuracy']:>7.2f}{r['avg_tokens']:>9.1f}{r['avg_nfe']:>9.1f}"
         f"{r['tpf']:>7.2f}{r['remask_events']:>8}{r['revision_token_changes']:>9}"
-        f"{r['wall_seconds']:>8.0f}")
+        f"{r['codr_drift_remasks']:>7}{r['wall_seconds']:>8.0f}")
 dump()
 log("DONE. results.json written to", RESULTS_PATH)
