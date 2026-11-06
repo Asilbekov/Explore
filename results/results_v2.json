@@ -1,0 +1,2480 @@
+{
+  "meta": {
+    "model": "nvidia/Nemotron-Labs-Diffusion-3B",
+    "gpu": "Tesla T4",
+    "torch": "2.11.0+cu130",
+    "transformers": "5.0.0",
+    "cuda": "13.0",
+    "dtype_final": "torch.float16"
+  },
+  "sanity": {
+    "prompt0": {
+      "nfe": 28,
+      "text": "\nThe capital of France is **Paris**.  \nIt is a well-known fact in geography and history, and Paris is also the largest city in France."
+    },
+    "prompt1": {
+      "nfe": 65,
+      "text": "\nTo determine the total number of clips Natalia sold in April and May, we start by analyzing the information provided:\n\n- In **April**, Natalia sold **48 clips**.\n- In **May**, she sold **half as many** as in April.\n\n---\n\n### Step 1: Calculate the number of clips sold in May\n\nSince she sold half as many in May as in April:\n\n$$\n\\text{May sales} = \\frac{48}{2} = 24\n$$\n\n---\n\n### Step 2: Calculate the total number of clips sold in both months\n\n$$\n\\text{Total} = \\text{April sales} + \\text{May sales} = 48 + 24 = 72\n$$\n\n---\n\n### Final Answer:\n\n$$\n\\boxed{72}\n$$"
+    }
+  },
+  "equivalence": {
+    "ids_equal": [
+      true,
+      true
+    ],
+    "nfe_equal": [
+      true,
+      true
+    ],
+    "nfes_stock": [
+      28,
+      65
+    ],
+    "nfes_w0": {
+      "prompt0": {
+        "reme_di": {
+          "ids_equal": true,
+          "nfe_equal": true,
+          "nfe": 28
+        },
+        "codr": {
+          "ids_equal": true,
+          "nfe_equal": true,
+          "nfe": 28
+        },
+        "per_step": {
+          "ids_equal": true,
+          "nfe_equal": true,
+          "nfe": 28
+        }
+      },
+      "prompt1": {
+        "reme_di": {
+          "ids_equal": true,
+          "nfe_equal": true,
+          "nfe": 65
+        },
+        "codr": {
+          "ids_equal": true,
+          "nfe_equal": true,
+          "nfe": 65
+        },
+        "per_step": {
+          "ids_equal": true,
+          "nfe_equal": true,
+          "nfe": 65
+        }
+      }
+    }
+  },
+  "qualitative": [
+    {
+      "question": "Write a short paragraph (3 sentences) explaining why the sky is blue.",
+      "stock": {
+        "text": "\nThe sky appears blue due to a phenomenon called Rayleigh scattering, where shorter wavelengths of light, such as blue and violet, are scattered more effectively by molecules in the atmosphere. However, our eyes are more sensitive to blue light, and the sun's light contains more blue than violet, making the sky look blue. During sunset, longer wavelengths dominate, turning the sky red.",
+        "nfe": 83
+      },
+      "reme_di_s32": {
+        "text": "\nThe sky appears blue due to the scattering of sunlight by atmospheric molecules, which scatter shorter wavelengths of light more effectively than longer ones, a phenomenon known as Rayleigh scattering's atmosphere.",
+        "nfe": 83,
+        "remask_events": 799,
+        "revision_token_changes": 54,
+        "blocks_with_remask": 3,
+        "codr_drift_remasks": 0,
+        "per_block": [
+          {
+            "block": 0,
+            "window_len": 0,
+            "remasked": 236,
+            "revised_tokens": 0
+          },
+          {
+            "block": 1,
+            "window_len": 32,
+            "remasked": 504,
+            "revised_tokens": 24
+          },
+          {
+            "block": 2,
+            "window_len": 32,
+            "remasked": 59,
+            "revised_tokens": 30
+          }
+        ]
+      },
+      "codr": {
+        "text": "\nThe sky appears blue due to a phenomenon called Rayleigh scattering, where shorter wavelengths of light, such as blue and violet, are scattered more effectively by molecules in the atmosphere. During the day, our eyes perceive more blue light than violet, creating the sky's blue hue. At night, the absence of sunlight means the sky appears dark.",
+        "nfe": 81,
+        "remask_events": 6,
+        "revision_token_changes": 0,
+        "blocks_with_remask": 1,
+        "codr_drift_remasks": 6,
+        "per_block": [
+          {
+            "block": 0,
+            "window_len": 0,
+            "remasked": 0,
+            "revised_tokens": 0
+          },
+          {
+            "block": 1,
+            "window_len": 32,
+            "remasked": 6,
+            "revised_tokens": 0
+          },
+          {
+            "block": 2,
+            "window_len": 32,
+            "remasked": 0,
+            "revised_tokens": 0
+          }
+        ]
+      },
+      "n_tokens_changed_vs_stock": null
+    },
+    {
+      "question": "A farmer has 17 sheep. All but 9 run away. How many sheep does he have left? Explain briefly.",
+      "stock": {
+        "text": "\nThe farmer initially has 17 sheep. The phrase \"all but 9 run away\" means 9 sheep remain. Thus, the farmer has **9 sheep left**. \n\n**Explanation:**  \n- \"All but 9\" implies 9 are left (not run away).  \n- Subtracting 9 from 17 gives 17 - 9 = 8, but this misinterprets the phrase.  \n- Correct interpretation: 9 sheep remain, so the answer is **9**.  \n\n**Answer:** 9.",
+        "nfe": 85
+      },
+      "reme_di_s32": {
+        "text": " had1 sheep \"  ran away\" means 9 sheep.  ran, resulting in **9** sheep.",
+        "nfe": 59,
+        "remask_events": 505,
+        "revision_token_changes": 32,
+        "blocks_with_remask": 2,
+        "codr_drift_remasks": 0,
+        "per_block": [
+          {
+            "block": 0,
+            "window_len": 0,
+            "remasked": 230,
+            "revised_tokens": 0
+          },
+          {
+            "block": 1,
+            "window_len": 32,
+            "remasked": 275,
+            "revised_tokens": 32
+          }
+        ]
+      },
+      "codr": {
+        "text": "\nThe farmer initially has 17 sheep. The phrase \"all but 9 run away\" means 9 sheep remain. Thus, the farmer has **9 sheep left**.",
+        "nfe": 34,
+        "remask_events": 0,
+        "revision_token_changes": 0,
+        "blocks_with_remask": 0,
+        "codr_drift_remasks": 0,
+        "per_block": [
+          {
+            "block": 0,
+            "window_len": 0,
+            "remasked": 0,
+            "revised_tokens": 0
+          },
+          {
+            "block": 1,
+            "window_len": 32,
+            "remasked": 0,
+            "revised_tokens": 0
+          }
+        ]
+      },
+      "n_tokens_changed_vs_stock": null
+    },
+    {
+      "question": "Translate into English and continue naturally: 'Le petit chat dort sur'",
+      "stock": {
+        "text": "\n'The little cat is on' (e.g., \"The little cat is on the couch\").",
+        "nfe": 20
+      },
+      "reme_di_s32": {
+        "text": "\n'The little cat is sleeping on'",
+        "nfe": 33,
+        "remask_events": 34,
+        "revision_token_changes": 0,
+        "blocks_with_remask": 1,
+        "codr_drift_remasks": 0,
+        "per_block": [
+          {
+            "block": 0,
+            "window_len": 0,
+            "remasked": 34,
+            "revised_tokens": 0
+          }
+        ]
+      },
+      "codr": {
+        "text": "\n'The little cat is on' (e.g., \"The little cat is on the couch\").",
+        "nfe": 20,
+        "remask_events": 0,
+        "revision_token_changes": 0,
+        "blocks_with_remask": 0,
+        "codr_drift_remasks": 0,
+        "per_block": [
+          {
+            "block": 0,
+            "window_len": 0,
+            "remasked": 0,
+            "revised_tokens": 0
+          }
+        ]
+      },
+      "n_tokens_changed_vs_stock": 0
+    }
+  ],
+  "gsm8k": {
+    "stock_b32_t0.9": {
+      "mode": "stock",
+      "revision_blocks": 0,
+      "remask_policy": "stock",
+      "criterion": "confidence",
+      "denoise_steps": null,
+      "block_length": 32,
+      "threshold": 0.9,
+      "limit": 50,
+      "accuracy": 86.0,
+      "avg_tokens": 177.1,
+      "avg_nfe": 67.2,
+      "tpf": 2.6354166666666665,
+      "wall_seconds": 182.43559455871582,
+      "remask_events": 0,
+      "revision_token_changes": 0,
+      "blocks_with_remask": 0,
+      "safety_tail_steps": 0,
+      "hard_cap_hits": 0,
+      "codr_probe_forwards": 0,
+      "codr_drift_remasks": 0,
+      "codr_refill_forwards": 0,
+      "details": [
+        {
+          "i": 0,
+          "ok": true,
+          "n_tokens": 93,
+          "nfe": 45,
+          "text": "\nJanet's ducks lay 16 eggs per day.  \nShe eats 3 eggs for breakfast and 4 eggs for muffins, totaling 7 eggs consumed daily.  \nThe remaining eggs are 16 - 7 = 9 eggs.  \nShe sells each egg for $2, so her daily earnings are 9 * 2 = $18 dollars.  \n\n\\boxed{18}"
+        },
+        {
+          "i": 1,
+          "ok": true,
+          "n_tokens": 77,
+          "nfe": 37,
+          "text": "\nThe robe requires 2 bolts of blue fiber.  \nIt requires half that much white fiber, which is \\( \\frac{1}{2} \\times 2 = 1 \\) bolt.  \nThe total bolts required is the sum of blue and white fiber: \\( 2 + 1 = 3 \\).  \n\n\\boxed{3}"
+        },
+        {
+          "i": 2,
+          "ok": true,
+          "n_tokens": 284,
+          "nfe": 104,
+          "text": "\nJosh bought the house for $80,000 and spent $50,000 on repairs, resulting in a total investment of $130,000. The value of the house increased by 150% from the original purchase price. A 150% increase on $80,000 is calculated as 150% of $80,000, which is $1.5 \\times 80,000 = $120,000. Therefore, the selling price is $80,000 + $120,000 = $200,000.\n\nProfit is calculated as the selling price minus th"
+        },
+        {
+          "i": 3,
+          "ok": true,
+          "n_tokens": 145,
+          "nfe": 72,
+          "text": "\nJames runs 3 sprints each session, and each sprint is 60 meters. Therefore, the distance he runs per session is \\(3 \\times 60 = 180\\) meters.  \nHe does this 3 times a week, so the total weekly distance is \\(180 \\times 3 = 540\\) meters.  \n\nAlternatively, the total number of sprints per week is \\(3 \\times 3 = 9\\), and each sprint is 60 meters, so \\(9 \\times 60 = 540\\) meters.  \n\nBoth methods confir"
+        },
+        {
+          "i": 4,
+          "ok": true,
+          "n_tokens": 268,
+          "nfe": 145,
+          "text": "\nWendi has 20 chickens, and each chicken receives 3 cups of feed per meal.  \n- For the morning meal: \\(20 \\times 3 = 60\\) cups.  \n- For the afternoon meal: \\(20 \\times 3 = 60\\) cups.  \nThe total feed required for the day is \\(20 \\times 3 = 60\\) cups.  \nGiven that the morning meal is 15 cups and the afternoon meal is 25 cups, the total so far is \\(15 + 25 = 40\\) cups.  \nThe feed needed for the fina"
+        },
+        {
+          "i": 5,
+          "ok": true,
+          "n_tokens": 300,
+          "nfe": 116,
+          "text": "\nThe problem states that one glass costs $5, but every second glass costs 60% of the price, which is $3. Since the glasses are purchased in sequence, the pricing alternates: odd-numbered glasses cost $5, and even-numbered glasses cost $3.\n\nFor 16 glasses:\n- There are 8 odd-numbered glasses (1st, 3rd, 5th, 7th, 9th, 11th, 13th, 15th), each costing $5, so the cost for these glasses is \\(8 \\times 5 ="
+        },
+        {
+          "i": 6,
+          "ok": true,
+          "n_tokens": 108,
+          "nfe": 20,
+          "text": "\nSeattle has 20 sheep.  \nCharleston has 4 times as many sheep as Seattle, so Charleston has \\(4 \\times 20 = 80\\) sheep.  \nToul has twice as many sheep sheep as Charleston, so Toulouse has \\(2 \\times 80 = 160\\) sheep.  \nTogether, they have \\(20 + 80 + 160 = 260\\) sheep.  \n\n\\boxed{260}"
+        },
+        {
+          "i": 7,
+          "ok": false,
+          "n_tokens": 309,
+          "nfe": 131,
+          "text": "\nCarla is downloading a 200 GB file at a normal speed of 2 GB per minute. The 40% point of the download is at 80 GB (since 40% of 200 GB is 80 GB). The time to reach this point is \\( \\frac{80 \\text{ GB}}{2 \\text{ GB/min}} = 40 \\) minutes.\n\nAt this point, Windows forces a restart for updates, which takes 20 minutes. After the restart, Carla restarts the download from the beginning. The total downlo"
+        },
+        {
+          "i": 8,
+          "ok": false,
+          "n_tokens": 246,
+          "nfe": 119,
+          "text": "\nJohn starts from home and drives for 3 hours at 60 mph, covering a distance of \\(3 \\times 60 = 180\\) miles from home. He then turns around and attempts to return home in 4 hours.\n\nDuring the first 2 hours of this return trip, he is in standstill traffic, so his position remains 180 miles from home.\n\nFor the next 0.5 hours, he drives at 30 mph in the direction away from home (since he is turning a"
+        },
+        {
+          "i": 9,
+          "ok": true,
+          "n_tokens": 140,
+          "nfe": 37,
+          "text": "\nEliza earns $10 per hour for the first 40 hours. For overtime hours, she earns 1.2 times her regular rate, which is \\(1.2 \\times 10 = 12\\) per hour.\n\nShe worked 45 hours, so the overtime hours are \\(45 - 40 = 5\\).\n\nEarnings for regular hours: \\(40 \\times 10 = 400\\).\n\nEarnings for overtime hours: \\(5 \\times 12 = 60\\).\n\nTotal earnings: \\(400 + 60 = 460\\).\n\n\\boxed{460}"
+        },
+        {
+          "i": 10,
+          "ok": true,
+          "n_tokens": 150,
+          "nfe": 52,
+          "text": "\nThe program had 60 downloads in the first month.\n\nIn the second month, the number of downloads was three times the first month's downloads:  \n\\(3 \\times 60 = 180\\) downloads.\n\nIn the third month, the number of downloads was reduced by 30% from the second month's downloads. A 30% reduction means 70% of the second month's downloads:  \n\\(180 \\times 0.7 = 126\\) downloads.\n\nThe total downloads over th"
+        },
+        {
+          "i": 11,
+          "ok": true,
+          "n_tokens": 171,
+          "nfe": 44,
+          "text": "\nThe total cost is calculated by finding the cost for each type of pastry separately and summing them up.\n\n- Donuts: 3 dozen at $68 per dozen = \\(3 \\times 68 = 204\\) dollars.\n- Mini cupcakes: 2 dozen at $80 per dozen = \\(2 \\times 80 = 160\\) dollars.\n- Mini cheesecakes: 6 dozen at $55 per dozen = \\(6 \\times 55 = 330\\) dollars.\n\nAdding these together:  \n\\(204 + 160 = 364\\),  \n\\(364 + 330 = 694\\).\n\nT"
+        },
+        {
+          "i": 12,
+          "ok": true,
+          "n_tokens": 371,
+          "nfe": 148,
+          "text": "\nCarlos incurs a one-time cost of $90 to plant the tree. Each year, he grows 7 lemons and sells them for $1.50 each, resulting in an annual revenue of \\(7 \\times 1.50 = 10.50\\) dollars. Additionally, there is an annual cost of $3 for water and feeding the tree, leading to an annual profit of \\(10.50 - 3 = 7.50\\) dollars.\n\nThe net profit after \\(t\\) years is given by the equation:\n\\[\n\\text{Net Prof"
+        },
+        {
+          "i": 13,
+          "ok": false,
+          "n_tokens": 145,
+          "nfe": 51,
+          "text": "\nMelanie started with 15 vacuum cleaners.\n\n- She sold a third at the green house: \\( \\frac{1}{3} \\times 15 = 5 \\), leaving \\( 15 - 5 = 10 \\).\n- She sold 2 more to the red house: \\( 10 - 2 = 8 \\), leaving 8.\n- She sold half of the remaining at the orange house: \\( \\frac{1}{2} \\times 8 = 4 \\), leaving \\( 8 - 4 = 5 \\).\n\nThis matches the given condition that she has 5 vacuum cleaners left.\n\n\\boxed{15}"
+        },
+        {
+          "i": 14,
+          "ok": true,
+          "n_tokens": 250,
+          "nfe": 72,
+          "text": "\nThe dance class has 20 students.\n\n- 20% enrolled in contemporary dance: \\(0.20 \\times 20 = 4\\) students.\n- Remaining students: \\(20 - 4 = 16\\).\n- 25% of the remaining enrolled in jazz dance: \\(0.25 \\times 16 = 4\\) students.\n- Students enrolled in hip-hop dance: \\(16 - 4 = 12\\).\n- Percentage of entire students enrolled in hip-hop: \\(\\frac{12}{20} \\times 100\\% = 60\\%\\).\n\nAlternatively, using percen"
+        },
+        {
+          "i": 15,
+          "ok": true,
+          "n_tokens": 246,
+          "nfe": 109,
+          "text": "\nThe merchant can choose to purchase either jewelry worth $5,000 or electronic gadgets worth $8,000. The jewelry market is expected to increase by 2.5%, and the electronic gadgets market is expected to increase by 1.2% within the month.\n\nThe profit for each option is calculated as the difference between the expected selling price and the purchase price.\n\n- Expected price for jewelry: $5,000 \\times"
+        },
+        {
+          "i": 16,
+          "ok": true,
+          "n_tokens": 100,
+          "nfe": 55,
+          "text": "\nThe two trains travel 80 miles westward on the first day and 150 miles northward on the second day. Since both trains travel the same distances in the same manner, the total distance covered by each train is the sum of the distances traveled each day.\n\nTotal distance = 80 miles + 150 miles = 230 miles.\n\nThus, each train covers 230 miles in the two days.\n\n\\boxed{230}"
+        },
+        {
+          "i": 17,
+          "ok": true,
+          "n_tokens": 353,
+          "nfe": 102,
+          "text": "\nJill earns $20 per hour as teaching and $30 per hour as a cheerleading coach. She works 35 hours per week as a teacher and 15 hours per week as a coach for 50 weeks a year.\n\nFirst, calculate the weekly earnings from teaching:  \n35 hours/week × $20/hour = $700/week.\n\nNext, calculate the weekly earnings from coaching:  \n15 hours/week × $30/hour = $450/week.\n\nThe total weekly earnings are:  \n$700/we"
+        },
+        {
+          "i": 18,
+          "ok": true,
+          "n_tokens": 122,
+          "nfe": 45,
+          "text": "\nClaire makes a 3-egg omelet every morning, so she uses 3 eggs per day.  \nIn 4 weeks, there are \\(4 \\times 7 = 28\\) days.  \nThe total number of eggs consumed is \\(3 \\times 28 = 84\\) eggs.  \nSince a dozen is 12 eggs, the number of dozens is \\(84 \\div 12 = 7\\).  \n\nThus, Claire will eat 7 dozens of eggs in 4 weeks.  \n\n\\boxed{7}"
+        },
+        {
+          "i": 19,
+          "ok": true,
+          "n_tokens": 110,
+          "nfe": 56,
+          "text": "\nMarissa has hiked 6 miles in 2 hours, with an average speed of 3 mph for the first 6 miles. To achieve an overall average speed of 4 mph for the 12-mile trail, the total time required is \\( \\frac{12}{4} = 3 \\) hours. Therefore, she needs 1 more hour to cover the remaining 6 miles. The required speed is \\( \\frac{6}{1} = 6 \\) mph.\n\n\\boxed{6}"
+        },
+        {
+          "i": 20,
+          "ok": true,
+          "n_tokens": 229,
+          "nfe": 81,
+          "text": "\nThe orange drink is 10 liters, with two-thirds water, so the amount of water is \\( \\frac{2}{3} \\times 10 = \\frac{20}{3} \\) liters.\n\nThe pineapple drink is 15 liters, with three-fifths water, so the amount of water is \\( \\frac{3}{5} \\times 15 = \\frac{45}{5} = 9 \\) liters.\n\nAfter spilling 1 liter of the orange drink, the remaining orange drink is 10 - 1 = 9 liters. The water in the remaining orange"
+        },
+        {
+          "i": 21,
+          "ok": false,
+          "n_tokens": 77,
+          "nfe": 40,
+          "text": "\nRaymond was born 6 years before Samantha. Since Samantha is currently 31 years old, Raymond is \\(31 - 6 = 25\\) years old.\n\nRaymond had a son at the age of 23. Therefore, the son was born \\(25 - 23 = 2\\) years ago.\n\n\\boxed{2}"
+        },
+        {
+          "i": 22,
+          "ok": true,
+          "n_tokens": 120,
+          "nfe": 33,
+          "text": "\nBilly has 8 customers.  \n- The first 3 customers each buy 1 DVD, so they buy \\(3 \\times 1 = 3\\) DVDs.  \n- The next 2 customers each buy 2 DVDs, so they buy \\(2 \\times 2 = 4\\) DVDs.  \n- The last 3 customers buy no DVDs, so they contribute 0 DVDs.  \n\nThe total number of DVDs sold is \\(3 + 4 + 0 = 7\\).  \n\n\\boxed{7}"
+        },
+        {
+          "i": 23,
+          "ok": true,
+          "n_tokens": 87,
+          "nfe": 36,
+          "text": "\nThe candle melts at 2 centimeters per hour. The time duration from 1:00 PM to 5:00 PM is 4 hours. Therefore, the total melting is \\(2  \\text{cm/h} \\times 4  \\text{h} = 8  \\text{cm}\\).\n\nThe candle will be 8 centimeters shorter after burning.\n\n\\boxed{8}"
+        },
+        {
+          "i": 24,
+          "ok": true,
+          "n_tokens": 141,
+          "nfe": 53,
+          "text": "\nThe price paid $19.50 after a 25% discount, which means 75% of the original price was paid.\n\nLet \\(P\\) be the original price. Then:\n\\[\n0.75P = 19.50\n\\]\n\nSolving for \\(P\\):\n\\[\nP = \\frac{19.50}{0.75} = \\frac{19.50 \\times 100}{75} = \\frac{1950}{75} = 26\n\\]\n\nThus, the original price was $26.00.\n\n\\boxed{26}"
+        },
+        {
+          "i": 25,
+          "ok": true,
+          "n_tokens": 342,
+          "nfe": 122,
+          "text": "\nMarie ordered one chicken meal for $12, 5 packs of milk at $3 each, 4 apples at $1.50 each, and some boxes of pizza at $8.50 each, paying a total of $50.\n\nFirst, calculate the cost of the known items:  \n- Chicken meal: $12  \n- Milk: \\(5 \\times 3 = 15\\)  \n- Apples: \\(4 \\times 1.50 = 6\\)  \n\nTotal cost of chicken, milk, and apples: \\(12 + 15 + 6 = 33\\).  \n\nThe total cost is $50, so the cost of the p"
+        },
+        {
+          "i": 26,
+          "ok": true,
+          "n_tokens": 209,
+          "nfe": 59,
+          "text": "\nMishka bought 3 pairs of shorts, 3 pairs of pants, and 3 pairs of shoes.  \n- Cost of shorts: \\(3 \\times 16.50 = 49.50\\)  \n- Cost of pants: \\(3 \\times 22.50 = 67.50\\)  \n- Cost of shoes: \\(3 \\times 42 = 126.00\\)  \nTotal cost: \\(49.50 + 67.50 + 126.00 = 243.00\\)  \n\nAlternatively, the total cost can be calculated as:  \n\\(3 \\times (16.50 + 22.50 + 42) = 3 \\times 81.00 = 243.00\\)  \n\nThus, Mishka spent "
+        },
+        {
+          "i": 27,
+          "ok": true,
+          "n_tokens": 179,
+          "nfe": 68,
+          "text": "\nCynthia eats one serving of ice cream every night for 60 days, so she consumes 60 servings in total.\n\nEach carton contains 15 servings and costs $4.00. The number of cartons needed is \\(60 \\div 15 = 4\\).\n\nThe total cost is \\(4 \\times 4.00 = 16.00\\).\n\nAlternatively, the cost per serving is \\(4.00 \\div 15 = \\frac{4}{15}\\) dollars. For 60 servings, the cost is \\(60 \\times \\frac{4}{15} = \\frac{240}{1"
+        },
+        {
+          "i": 28,
+          "ok": true,
+          "n_tokens": 130,
+          "nfe": 52,
+          "text": "\nHenry's trip is 60 miles long. His first stop is after 20 miles, so he has traveled 20 miles to reach this point. His second stop is 15 miles before the end of the trip, so it is at \\(60 - 15 = 45\\) miles from the start. The distance between the first stop (20 miles) and the second stop (45 miles) is \\(45 - 20 = 25\\) miles.\n\nThus, the miles traveled between the first and second stops is 25 miles."
+        },
+        {
+          "i": 29,
+          "ok": true,
+          "n_tokens": 110,
+          "nfe": 48,
+          "text": "\nThe two pairs of high heels cost $33 and $66, respectively, since one pair costs $33 and the other costs twice as much. The total cost of the two heels is $33 + $66 = $99.\n\nThe problem states that the two pairs of heels together cost five dollars less than the boots. Therefore, the cost of the boots is $99 + $5 = $104.\n\nThus, the boots cost $104.\n\n\\boxed{104}"
+        },
+        {
+          "i": 30,
+          "ok": true,
+          "n_tokens": 173,
+          "nfe": 46,
+          "text": "\nThe ages of Darrell and Allen are in the ratio of 7:11, and their total age is 162.\n\nLet Darrell's age be \\(7x\\) and Allen's age be \\(11x\\), where \\(x\\) is a common multiplier.\n\nThe sum of their ages is:\n\\[\n7x + 11x = 18x = 162\n\\]\n\nSolving for \\(x\\):\n\\[\nx = \\frac{162}{18} = 9\n\\]\n\nAllen's current age is:\n\\[\n11x = 11 \\times 9 = 99\n\\]\n\nAllen's age 10 years from now will be:\n\\[\n99 + 10 = 109\n\\]\n\n\\box"
+        },
+        {
+          "i": 31,
+          "ok": true,
+          "n_tokens": 198,
+          "nfe": 63,
+          "text": "\nThe three guesses are as follows:  \n- The first friend says 80.  \n- The second friend says 20 more than half the first guess: half of 80 is 40, so 40 + 20 = 60.  \n- The third friend says 25% more than the first guess: 25% of 80 is 20, so 80 + 20 = 100.  \n\nThe guesses are 80, 60, and 100.  \nThe average is calculated as the sum of the guesses divided by the number of guesses:  \n(80 + 60 + 100) / 3 "
+        },
+        {
+          "i": 32,
+          "ok": true,
+          "n_tokens": 83,
+          "nfe": 35,
+          "text": "\nJohn has 10 dogs, and each dog requires 0.5 hours per day for care.  \nThe total daily care time is \\(10 \\times 0.5 = 5\\) hours.  \nAssuming a 7-day week, the total weekly care time is \\(5 \\times 7 = 35\\) hours.  \n\n\\boxed{35}"
+        },
+        {
+          "i": 33,
+          "ok": true,
+          "n_tokens": 187,
+          "nfe": 43,
+          "text": "\nGretchen has a total of 110 coins, and there are 30 more gold coins than silver coins.\n\nLet \\(s\\) represent the number of silver coins. Then the number of gold coins is \\(s + 30\\).\n\nThe total number of coins is given by:\n\\[\ns + (s + 30) = 110\n\\]\nSimplify the equation:\n\\[\n2s + 30 = 110\n\\]\nSubtract 30 from both sides:\n\\[\n2s = 80\n\\]\nDivide both sides by 2:\n\\[\ns = 40\n\\]\nThe number of gold coins is:\n\\"
+        },
+        {
+          "i": 34,
+          "ok": true,
+          "n_tokens": 116,
+          "nfe": 25,
+          "text": "\nRaymond has 40 jewels.  \nAaron has 5 more jewels than half of's jewels:  \nHalf of Raymond's jewels is \\( \\frac{40}{2} = 20 \\).  \nAaron has \\( 20 + 5 = 25 \\) jewels.  \nSiobhan has 2 fewer jewels than Aaron:  \nSiobhan has \\( 25 - 2 = 23 \\) jewels.  \n\n\\boxed{23}"
+        },
+        {
+          "i": 35,
+          "ok": true,
+          "n_tokens": 109,
+          "nfe": 35,
+          "text": "\nMike scores 4 points in the first 20 minutes.  \nIn the second 20 minutes, he scores 25% more points than in the first 20 minutes.  \n25% of 4 is \\(0.25 \\times 4 = 1\\), so he scores \\(4 + 1 = 5\\) points in the second 20 minutes.  \nThe total points scored is \\(4 + 5 = 9\\).  \n\n\\boxed{9}"
+        },
+        {
+          "i": 36,
+          "ok": true,
+          "n_tokens": 185,
+          "nfe": 59,
+          "text": "\nTerry eats 2 yogurts per day. Over 30 days, he consumes \\(2 \\times 30 = 60\\) yogurts.\n\nThe sale is 4 yogurts for $5.00, so the cost per yogurt is \\(5.00 / 4 = 1.25\\) dollars.\n\nThe total cost for 60 yogurts is \\(60 \\times 1.25 = 75\\) dollars.\n\nAlternatively, since 4 yogurts cost $5.00, 60 yogurts consist of \\(60 / 4 = 15\\) sets. The total cost is \\(15 \\times 5.00 = 75\\) dollars.\n\nThus, Terry spend"
+        },
+        {
+          "i": 37,
+          "ok": false,
+          "n_tokens": 165,
+          "nfe": 95,
+          "text": "\nJohn has 13 lego sets and sells them for $15 each, so he raises \\(13 \\times 15 = 195\\) dollars. He then bu 8 video games for $20 each, which costs \\(8 \\times 20 = 160\\) dollars. After this purchase, he has $5 left, which matches the calculation since \\(195 - 160 = 35\\), but the problem states he has $5 left, indicating a discrepancy. However, the key point is that John sold all 13 lego sets to ra"
+        },
+        {
+          "i": 38,
+          "ok": true,
+          "n_tokens": 165,
+          "nfe": 63,
+          "text": "\nJohn runs a total of 60 miles per week over 3 days. On the first day, he runs for 3 hours. On each of the other two days, he runs for half the time of the first day, which is \\( \\frac{3}{2} = 1.5 \\) hours per day.\n\nThe total running time per week is:\n\\[\n3 + 1.5 + 1.5 = 6 \\text{ hours}.\n\\]\n\nHis average speed is the total distance divided by the total time:\n\\[\n\\frac{60 \\text{ miles}}{6 \\text{ hours"
+        },
+        {
+          "i": 39,
+          "ok": true,
+          "n_tokens": 249,
+          "nfe": 99,
+          "text": "\nDana's skipping speed is given as 3 miles per hour, which is half her running speed. Therefore, her running speed is \\(2 \\times 3 = 6\\) miles per hour. Since running speed is four times her walking speed, her walking speed is \\(6 / 4 = 1.5\\) miles per hour.\n\nShe spends one-third of the time running and two-thirds of walking over six hours.  \n- Time running: \\((1/3) \\times 6 = 2\\) hours.  \n- Time "
+        },
+        {
+          "i": 40,
+          "ok": true,
+          "n_tokens": 110,
+          "nfe": 34,
+          "text": "\nSuzy's iPhone is 1 year old.  \nBen's iPhone is two times older than Suzy's iPhone, meaning Ben's iPhone is twice as old as Suzy's. Therefore, Ben's iPhone is \\(2 \\times 1 = 2\\) years old.  \nBrandon's iPhone is four times as old as Ben's iPhone. Therefore, Brandon's iPhone is \\(4 \\times 2 = 8\\) years old.  \n\n\\boxed{8}"
+        },
+        {
+          "i": 41,
+          "ok": true,
+          "n_tokens": 148,
+          "nfe": 73,
+          "text": "\nThe dragon's flames reach up to 1000 feet. Without the sapphire gemstone, Polly can throw the javelin 400 feet. With the gemstone, she can throw three times farther, which is \\(3 \\times 400 = 1200\\) feet.\n\nThe distance outside the dragon's reach is the difference between the throw distance with the gemstone and the dragon's flame range: \\(1200 - 1000 = 200\\) feet.\n\nThus, Polly can stand 200 feet "
+        },
+        {
+          "i": 42,
+          "ok": true,
+          "n_tokens": 81,
+          "nfe": 27,
+          "text": "\nGrandma Jones baked 5 pies, each cut into 8 pieces, resulting in a total of \\(5 \\times 8 = 40\\) pieces. After the guests ate, 14 pieces remained. The number of pieces taken by the guests is the total minus the remaining pieces: \\(40 - 14 = 26\\).\n\n\\boxed{26}"
+        },
+        {
+          "i": 43,
+          "ok": false,
+          "n_tokens": 275,
+          "nfe": 112,
+          "text": "\nThe bag of chips has 250 calories per serving and a 300g bag with 5 servings, so the total calories in the bag are \\(5 \\times 250 = 1250\\) calories.\n\nThe daily calorie target is 2000 calories, and 1800 calories have already been consumed, leaving \\(2000 - 1800 = 200\\) calories available.\n\nThe number of servings that can be consumed with 200 calories is \\(200 / 250 = 0.8\\) servings.\n\nSince each se"
+        },
+        {
+          "i": 44,
+          "ok": true,
+          "n_tokens": 159,
+          "nfe": 79,
+          "text": "\nCharlie makes and sells 20 candles. Each candle requires 0.1 pounds of beeswax (since 10 candles are made per pound). Therefore, 20 candles require 2 pounds of beeswax.\n\nThe cost of supplies per pound of beeswax and wicks is $10.00. Thus, the total cost for 2 pounds is \\(2 \\times 10 = 20\\) dollars.\n\nCharlie sells each candle for $2.00, so the total revenue from 20 candles is \\(20 \\times 2 = 40\\) "
+        },
+        {
+          "i": 45,
+          "ok": true,
+          "n_tokens": 160,
+          "nfe": 39,
+          "text": "\nMeredith wrote 5 articles on Monday.  \nOn Tuesday, she wrote \\(\\frac{2}{5}\\) times more articles than on Monday, meaning she wrote \\(5 + \\frac{2}{5} \\times 5 = 5 + 2 = 7\\) articles.  \nOn Wednesday, she wrote twice the number of articles from Tuesday, so \\(2 \\times 7 = 14\\) articles.  \n\nThe total number of articles written over the three days is \\(5 + 7 + 14 = 26\\).  \nEach article takes 4 hours to"
+        },
+        {
+          "i": 46,
+          "ok": false,
+          "n_tokens": 243,
+          "nfe": 133,
+          "text": "\nCandice started with 80 post-it notes and ended with 23, so the total number of post-it notes she had throughout the day is \\(80 + 23 = 103\\).\n\nShe used 220 post-it notes on the cups of coffee. Therefore, the number of post-it notes in the package she purchased is the total minus the number used: \\(103 - 220 = -117\\).\n\nHowever, a negative number of post-it notes is impossible, indicating a discre"
+        },
+        {
+          "i": 47,
+          "ok": true,
+          "n_tokens": 169,
+          "nfe": 54,
+          "text": "\nJohn spent $200 on blue ties, each cost $40 each, so the number of blue ties is $200 / 40 = 5$.\n\nHe buys twice as many red ties as blue ties, so the number of red ties is $2 \\times 5 = 10$.\n\nRed ties cost 50% more than blue ties, so each red tie costs $40 \\times 1.5 = 60$ dollars.\n\nThe total cost for red ties is $10 \\times 60 = 600$ dollars.\n\nThe total amount spent on all ties is the sum of the c"
+        },
+        {
+          "i": 48,
+          "ok": true,
+          "n_tokens": 159,
+          "nfe": 68,
+          "text": "\nThe wire is 4 feet long, and each piece is 6 inches long.  \nFirst, convert the wire length to inches:  \n4 feet × 12 inches/foot = 48 inches.  \nNow, divide the total length by the length of each piece:  \n48 inches ÷ 6 inches/piece = 8 pieces.  \n\nAlternatively, convert the piece length to feet:  \n6 inches ÷ 12 inches/foot = 0.5 feet.  \nThen divide the wire length by the piece length:  \n4 feet ÷ 0.5"
+        },
+        {
+          "i": 49,
+          "ok": true,
+          "n_tokens": 109,
+          "nfe": 26,
+          "text": "\nThe building has 15 floors, each with 8 units, so the total number of units is \\(15 \\times 8 = 120\\).\n\nGiven that \\(\\frac{3}{4}\\) of the building is occupied, the fraction of units occupied is \\(1 - \\frac{3}{4} = \\frac{1}{4}\\).\n\nThus, the number of unoccupied units is \\(\\frac{1}{4} \\times 120 = 30\\).\n\n\\boxed{30}"
+        }
+      ]
+    },
+    "remedi_w1_s32_conf": {
+      "mode": "wet",
+      "revision_blocks": 1,
+      "remask_policy": "reme_di",
+      "criterion": "confidence",
+      "denoise_steps": 32,
+      "block_length": 32,
+      "threshold": 0.9,
+      "limit": 50,
+      "accuracy": 82.0,
+      "avg_tokens": 177.62,
+      "avg_nfe": 196.14,
+      "tpf": 0.9055776486183339,
+      "wall_seconds": 578.9145965576172,
+      "remask_events": 127082,
+      "revision_token_changes": 3279,
+      "blocks_with_remask": 305,
+      "safety_tail_steps": 0,
+      "hard_cap_hits": 0,
+      "codr_probe_forwards": 0,
+      "codr_drift_remasks": 0,
+      "codr_refill_forwards": 0,
+      "details": [
+        {
+          "i": 0,
+          "ok": true,
+          "n_tokens": 105,
+          "nfe": 127,
+          "text": "\nJanet's ducks lay 16 eggs per day.  \nShe eats 3 eggs for breakfast and uses 4 eggs for baking muffins, totaling 7 eggs per day.  \nThe remaining eggs are 16 - 7 = 9 eggs, which she sells.   sells for $, so she  * 2 = $18 dollars per day the farmers' market.  \n\n\\boxed{18}"
+        },
+        {
+          "i": 1,
+          "ok": true,
+          "n_tokens": 74,
+          "nfe": 96,
+          "text": "\nThe robe requires 2 bolts of blue fiber and half that amount, which is \\( \\frac{2}{2} = 1 \\) bolt of fiber.  \n total number of bolts is the sum of blue and white fibers \\(  + 1 = 3 \\) bolts.  \n\n\\boxed{3}"
+        },
+        {
+          "i": 2,
+          "ok": true,
+          "n_tokens": 303,
+          "nfe": 330,
+          "text": "\nJosh bought the house for $80,000 and spent $50,000 on repairs, resulting in a total investment of $130,000. The value of the house increased by 150% of the original purchase price, not by 150% of the total investment or net increase. 150% of $80,000 is $1.5 \\times 80,000 = 120,000$. Therefore, the selling price is $80,000 + 120,000 = 200,000$.\n\nThe profit is calculated as the selling price minus"
+        },
+        {
+          "i": 3,
+          "ok": true,
+          "n_tokens": 80,
+          "nfe": 98,
+          "text": "\nJames runs 3 sprints per day, and each sprint is 60 meters, so per day he runs \\(3 \\times 60 = 180\\) meters.  \n does this three times a week, so per week, he runs \\(180 \\times 3 = 540\\) meters.\n\n\\boxed{540}"
+        },
+        {
+          "i": 4,
+          "ok": false,
+          "n_tokens": 289,
+          "nfe": 299,
+          "text": "\nWendi has 20 chickens, and each chicken requires 3 cups of feed per day, so the total feed needed per day is \\(20 \\times 3 = 60\\) cups.\n\nThe morning meal provides 15 cups, and the afternoon meal provides 25 cups, for a total of \\(15 + 25 = 40\\) cups.\n\nTherefore, the remaining amount of feed needed for the final meal is \\(60 - 40 = 20\\) cups.\n\nAlternatively, a per-chicken-meal basis:  \n- Morning: "
+        },
+        {
+          "i": 5,
+          "ok": true,
+          "n_tokens": 267,
+          "nfe": 297,
+          "text": "\nKylar wants to buy 16 glasses, with the first glass cost $5 in every pair of pairings and every second glass costing 60% of the price, which is $3.00 in every pair.\n\nSince there are 16 glasses, there are 16 / 2 = 8 pairs.\n\nEach pair consists of one glass costing $5.00 and one glass costing $3.00, so the cost per pair is $5.00 + $3.00 = $8.00.\n\nTherefore, for 8 pairs, the total cost is 8 * $8.00 ="
+        },
+        {
+          "i": 6,
+          "ok": true,
+          "n_tokens": 108,
+          "nfe": 129,
+          "text": "\nSeattle has 20 sheep.  \nCharleston has 4 times as many sheep as Seattle, so Charleston has \\(4 \\times 20 = 80\\) sheep.  \nToulouse has twice as many sheep as Charleston, so Toulouse has \\(2 \\times 80 = 16\\).  , total sheep: \\(160 + 80 + 20 = 260\\).  \n\n\\boxed{260}"
+        },
+        {
+          "i": 7,
+          "ok": true,
+          "n_tokens": 204,
+          "nfe": 231,
+          "text": "\nCarla is downloading a 200 GB file at a rate of 2 GB per minute. Normally, this would take 200 GB / 2 GB/min = 100 minutes. However, at 40% of the way through (i.e 80 GB), Windows forces a restart for 20 minutes, requiring the download restart from the beginning.\n\nThe total time includes:\n- Time to download 80 GB: 80 GB / 2 GB/min = 40 minutes.\n- Restart time: 20 minutes.\n- Time to download the f"
+        },
+        {
+          "i": 8,
+          "ok": true,
+          "n_tokens": 305,
+          "nfe": 329,
+          "text": "\nJohn starts at home and drives for 3 hours at 60 mph, a distance of 180 miles from home. He then attempts to return home in 4 hours. During the first 2 hours, he is standstill in standstill traffic, covering no distance. He drives for the next 0.5 hours at 30 mph, covering 15 miles toward home. In the remaining 1.5 hours of the 4-hour period, he drives at 80 mph, covering 120 miles toward home.\n\n"
+        },
+        {
+          "i": 9,
+          "ok": true,
+          "n_tokens": 148,
+          "nfe": 160,
+          "text": "\nEliza's regular hourly rate is $10 per hour for up 40 hours. Overtime pay is 1.2 times the regular rate, which is \\(1.2 \\times 10 = 12\\) per hour for overtime hours.\n\nShe worked 45 hours, so the first 40 hours and 5 hours hours are overtime.\n\nRegular pay calculation: \\(40 \\times 10 = 400\\)  \nOime pay5 \\times 12 = 60 dollars  \n: \\(400 60 = 460\\) dollars.\n\n\\boxed{460}"
+        },
+        {
+          "i": 10,
+          "ok": true,
+          "n_tokens": 145,
+          "nfe": 162,
+          "text": "\nThe program had 60 downloads in the first month.  \nIn the second month, the number of downloads was three times that of the first month, so \\(3 \\times 60 = 180\\) downloads.  \nIn the third month, the number of downloads reduced by 30% from the second month's count, so it is 70% of 180: \\(0.7 \\times 180 = 126\\) downloads  The total of downloads is \\(60 + 180 + 126 = 366\\).  \n\n\\boxed{366}"
+        },
+        {
+          "i": 11,
+          "ok": true,
+          "n_tokens": 172,
+          "nfe": 197,
+          "text": "\nThe total cost is calculated by finding the cost for each type of pastry and summing them up.\n\n- For 3 dozen donuts at $68 per dozen: \\(3 \\times 68 = 204\\)  \n- For 2 dozen mini cupcakes at $80 per dozen: \\(2 \\times 80 = 160\\)  \n- For 6 dozen mini cheesecakes at $55 per dozen: \\(6 \\times 55 = 330\\)  \n\nAdding these together:  \n\\(204 + 160 = 364\\)\n\\(364 + 330 = 694\\)  Thus, the total cost is $694.\n\n"
+        },
+        {
+          "i": 12,
+          "ok": true,
+          "n_tokens": 403,
+          "nfe": 427,
+          "text": "\nThe initial cost to plant the tree is $90.  \nEach year, after the tree, Carlos produces 7 lemons sold for $1.50 each, resulting in $10.50 in revenue.  \nAdditionally, the annual cost is $3 to water and feed the tree.  \nThus, the annual net profit is $10.50 - $3 = $7.50.  \n\nThe cumulative profit after \\(t\\) years is given by:  \n\\[ P(t) = 7.50(t-1) - 90 \\]  \nSet \\(P(t) \\geq 0\\) to find when profit i"
+        },
+        {
+          "i": 13,
+          "ok": false,
+          "n_tokens": 354,
+          "nfe": 365,
+          "text": "\nMelanie has 5 vacuum cleaners left after selling half at the orange house. Let \\(x\\) be the total number of vacuum cleaners she started with.\n\nAfter selling a third at the green house, \\(\\frac{1}{3}x\\) are sold, leaving \\(\\frac{2}{3}x\\).\n\nAfter selling 2 to the red house, the remaining number is \\(\\frac{2}{3}x - 2\\).\n\nAfter selling half at the orange house, half of \\(\\frac{2}{3}x - 2\\) is sold, l"
+        },
+        {
+          "i": 14,
+          "ok": true,
+          "n_tokens": 154,
+          "nfe": 164,
+          "text": "\nThe dance class has 20 students.  \n20% enrolled in contemporary dance: \\(0.20 \\times 20 = 4\\) students.  \nThe remaining students are \\(20 - 4 = 16\\) students.  \n25% of the remaining students enrolled in jazz dance: \\(0.25 \\times 16 = 4\\) students.  \nThe remaining students enrolled in hip-hop: \\(1 - 4 = 12\\) students.  \nThe percentage of the entire class who enrolled in hip-hop is \\(\\frac{12}{20} "
+        },
+        {
+          "i": 15,
+          "ok": true,
+          "n_tokens": 309,
+          "nfe": 329,
+          "text": "\nThe merchant can choose between jewelry worth $5,000 or electronic gadgets worth $8,000 to purchase. The financial advisor predicts that the jewelry market will increase by 2.5% and electronic gadgets will increase by 1.2% within the month. The profit is the difference between the sale value after the increase and the purchase price.\n\nFor jewelry:  \n- Purchase Price: $5,000  \n- Sale Value: $5,000"
+        },
+        {
+          "i": 16,
+          "ok": true,
+          "n_tokens": 78,
+          "nfe": 96,
+          "text": "\nEach train travels 80 miles west on the first day and then 150 miles north on the second. The total distance covered by each train is the of these, which is \\(80 + 150 = 230\\) miles.\n\nThe is since both trains travel the same distances.\n\n\\boxed{230}"
+        },
+        {
+          "i": 17,
+          "ok": true,
+          "n_tokens": 172,
+          "nfe": 194,
+          "text": "\nJill earns $20 per hour as a teacher and works 35 hours per week.  \nShe earns $30 per hour as a cheerleading coach and works 15 hours per week.  \n\nHer weekly earnings:  \n35 hours/week × $20/hour = $700 teaching  \n15 hours/week × $30/hour = $450 coaching cheerleading coach  \nTotal weekly earnings: $700 + $450 = $1,150.  \n\nShe works 50 weeks per year, so her annual salary:  $115/week × 50year = $57"
+        },
+        {
+          "i": 18,
+          "ok": true,
+          "n_tokens": 116,
+          "nfe": 130,
+          "text": "\nClaire makes a 3 egg omelet daily, so she uses 3 eggs per day.  \nThere are 7 days, week: 4 weeks × 7 days = 28 days.  \nTotal eggs consumed: 3 eggs/day × 28 days = 84 eggs.  \n 1 dozen = 12 eggs, 84 ÷ 12 = 7 dozens  \n\nThus, eats 7 dozens of eggs in 4 weeks.  \n\n\\boxed{7}"
+        },
+        {
+          "i": 19,
+          "ok": false,
+          "n_tokens": 151,
+          "nfe": 163,
+          "text": "\nMarissa has hiked 4 miles in the first hour and another 2 miles in the next hour, totaling 6 miles. The remaining distance is 12 miles - 6 miles = 6 miles. The total time elapsed so far is 1 + 1 hour. To achieve an average speed of 4 miles per hour for the entire 12-mile trail, the total time must be 12 miles / 4 = 3 hours., the time to the 6 miles is 3 hours - 2 hours = 2 hours. The required spe"
+        },
+        {
+          "i": 20,
+          "ok": true,
+          "n_tokens": 223,
+          "nfe": 231,
+          "text": "\nThe orange drink is 10 liters total, with two-thirds water, so the water is \\( \\frac{2}{3} \\times 10 = \\frac{20}{3} \\) liters.\n\nThe pineapple drink is 15 liters total, with three-fifths water, so it is \\( \\frac{3}{5} \\times 15 = 9 \\) liters.\n\nAfter spilling 1 liter of the orange drink, the remaining orange drink is \\(10 - 1 = 9\\) liters. The water in this remaining orange is \\( \\frac{2}{3} \\times"
+        },
+        {
+          "i": 21,
+          "ok": true,
+          "n_tokens": 96,
+          "nfe": 99,
+          "text": "\nRaymond was born \\(6\\) before Samantha, and Samantha is currently 31\\) years old. Therefore, Raymond is \\(31 + 6 = 37\\) years old.\n\nRaymond had a son at the age of 23, so the son born would be \\(37 - 23 = 14\\) years ago.\n\nThus, the son was born exactly \\(14\\) years ago.\n\n\\boxed{14}"
+        },
+        {
+          "i": 22,
+          "ok": true,
+          "n_tokens": 114,
+          "nfe": 126,
+          "text": "\nBilly has 8 customers.  \n- The first 3 customers each buy 1 DVD, so \\(3 \\times 1 = 3\\) DVDs.  \n- The next 2 customers each buy 2 DVDs, so \\(2 \\times 2 = 4\\) DVDs.  \n- The  buy no, so \\(3 \\ 0\\) DVD  The total of DVD sold is \\(3 + 4 = 7\\).\n\n\\boxed{7}"
+        },
+        {
+          "i": 23,
+          "ok": true,
+          "n_tokens": 76,
+          "nfe": 96,
+          "text": "\nThe candle melts at 2 cm per hour. The time from 1:00 PM to 5:00 PM is 4 hours., the total melted length is 2 cm/hour by 4 hours = 8 cm will be 8 cm shorter after burning during this period.\n\n\\boxed{8}"
+        },
+        {
+          "i": 24,
+          "ok": true,
+          "n_tokens": 188,
+          "nfe": 198,
+          "text": "\nThe book sold for $19.50 after a a 25% discount, meaning this is 75% of the original price.\n\nLet \\(P\\) be the original price. Then:\n\\[\n0.75 = 19.50\n\\]\n\nSolving for \\(P\\):\n\\[\nP = \\frac{19.50}{0.75}\n\\]\n\nCalculate the division:\n\\[\n\\frac{19.50}{0.75} = \\frac{19.50}{\\frac{3}{4}} = 4 \\times 19.50 = \\frac{4 \\times 19.50}{3} = \\frac{78}{3} = \\frac{78}{3} = 26\n\\]\n\nThus, the original price was $26.\n\n\\boxed"
+        },
+        {
+          "i": 25,
+          "ok": true,
+          "n_tokens": 232,
+          "nfe": 260,
+          "text": "\nMarie ordered one chicken meal for $12, 5 packs of milk at $3 each, 4 apples at $1.50 each, and some boxes of pizza at $8.50 each. The total cost is $50.\n\nFirst, calculate the cost of the known items:\n- Chicken meal: $12\n- Milk packs: 5 × $3 = $15.00\n- Apples: 4 × $1.50 = $6.00\n\nSum of the known items: $12 + $15.00 + $6.00 = $37.00.\n\nSubtract this from the total to find the cost of the pizza: $50"
+        },
+        {
+          "i": 26,
+          "ok": true,
+          "n_tokens": 247,
+          "nfe": 264,
+          "text": "\nMishka bought 3 pairs of shorts, 3 pairs of pants, and 3 pairs of shoes.  \nThe cost per pair of shorts is $16.50, so the total cost for shorts is \\(3 \\times 16.50 = 49.50\\) dollars.  \nThe cost per pair of pants is $22.50, so the total cost for pants is \\(3 \\times 22.50 = 67.50\\) dollars.  \nThe cost per pair of shoes is $42, so the total cost for shoes is \\(3 \\times 42 = 126\\) dollars.  \n\nThe tota"
+        },
+        {
+          "i": 27,
+          "ok": false,
+          "n_tokens": 170,
+          "nfe": 191,
+          "text": "\nCynthia eats one serving of ice cream every night for 60 days, so she consumes 60 1 = 60 servings.\n\nEach carton contains 15 servings and costs $4.00. The cost per serving is $4.00 / 15.\n\nFor 60 servings, the total cost is 60 * ($4.00 / 15) = (4 * 15) / 15 = 60 / 15 = $4.00.\n\nAlternatively, 60 servings / 15 = cart  cart400 carton = $.00.\n\n Cynthia spends $4.00.\n\n\\boxed{4}"
+        },
+        {
+          "i": 28,
+          "ok": true,
+          "n_tokens": 132,
+          "nfe": 149,
+          "text": "\nHenry's trip is 60 miles long. His first stop is 20 miles from. The second stop is 15 miles before the end of the trip, so it is 60 - 15 = 45 miles from the start.\n\nThe distance between the stops is calculated as follows:  \n- First stop: 20 miles from the start.  \n- Second stop: 45 miles from the start.  \n-box{25}"
+        },
+        {
+          "i": 29,
+          "ok": true,
+          "n_tokens": 101,
+          "nfe": 118,
+          "text": "\nThe two pairs of heels cost $33 and $66, respectively, since one pair costs $33 and the other costs twice as much. Their combined cost is $33 + $66 = $99.\n\nThe problem states that the heels cost five dollars less than the boots. Therefore, the of boots isboxed104}"
+        },
+        {
+          "i": 30,
+          "ok": true,
+          "n_tokens": 196,
+          "nfe": 224,
+          "text": "\nThe ratio of Darrell's to Allen's ages is 7:11, and their combined age is 162 years.\n\nLet Darrell's age be \\(7x\\) and Allen's age be \\(11x\\), where \\(x\\) is a common multiplier.\n\nThe equation age is:\n\\[\n7x + 11x = 162\n\\]\n\\[\n18x = 162\n\\]\n\\[\nx = \\frac{162}{18} = 9\n\\]\n\nAllen's current age is \\(11x\\):\n\\[\n11x = 11 \\times 9 = 99\n\\]\n\nAllen's age 10 years from now, will be:\n\\[\n99 +0 = 109Thus,'s0 from no"
+        },
+        {
+          "i": 31,
+          "ok": true,
+          "n_tokens": 164,
+          "nfe": 192,
+          "text": "\nThe three guesses are explicitly given as follows:  \n- The first guess is 80.  \n- The second says 20 more than half the first, which is half of 80 + 20 = 40 + 20 = 60.  \n- The third says 25% more than the first, which is 80 + 1.25 × 80 = 100.  \n\nThe guesses are 80, 60, and 100.  \nThe average is calculated as: (80 + 0 100 /  240 30.  \n\n\\ed{80}"
+        },
+        {
+          "i": 32,
+          "ok": true,
+          "n_tokens": 76,
+          "nfe": 98,
+          "text": "\nJohn walks 10 dogs, and each dog takes 0.5 hours per day.  \nPer day, he spends \\(10 \\times 0.5 = 5\\) hours  \nAssuming 7 days a week, he spends \\(5 \\times 7 = 35\\) hours.  \n\n\\boxed{35}"
+        },
+        {
+          "i": 33,
+          "ok": true,
+          "n_tokens": 389,
+          "nfe": 423,
+          "text": "\nGretchen has a total of 110 coins, and there are 30 more gold coins than silver coins. Let \\(s\\) be the number of silver coins. Then the number of gold coins is \\(s + 30\\).\n\nThe equation for the total of coins is:  \n\\[\ns + (s + 30) = 110\n\\]  \nSimplify the equation:  \n\\[\n2s + 30 = 110\n\\]  \nSubtract 30 from both sides:  \n\\[\n2s = 80\n\\]  \nDivide both sides by 2:  \n\\[\ns = 40\n\\]  \nThus, the number of g"
+        },
+        {
+          "i": 34,
+          "ok": true,
+          "n_tokens": 115,
+          "nfe": 131,
+          "text": "\nRaymond has 40 jewels.  \nAaron has 5 more jewels than half of Raymond's jewels.  \nHalf of Raymond's jewels is \\( \\frac{40}{2} = 20 \\).  \nThus, Aaron has \\( 20 + 5 = 25 \\) jewels.  \nSiobhan has 2 fewer jew than Aaron, so she has has \\( 25 - 2 = 23 \\) jewels.\n\n\\boxed{23}"
+        },
+        {
+          "i": 35,
+          "ok": true,
+          "n_tokens": 124,
+          "nfe": 130,
+          "text": "\nMike scores 4 points in the first 20 minutes.  \nIn the second 20 minutes, he scores 25% more than the first 20 minutes.  \n25% of 4 points is 1.0 point (since \\(4 \\times 0.25 = 1\nThus, he scores \\(4 + 1 = 5\\) points ( 50%) in the second 20 minutes.  \nThe total points scored is \\(4 + 5 = 9\\).  \n\n\\boxed{9}"
+        },
+        {
+          "i": 36,
+          "ok": true,
+          "n_tokens": 203,
+          "nfe": 228,
+          "text": "\nTerry eats 2 yogurts per day. Over 30 days, he consumes \\(2 \\times 30 = 60\\) yogurts.\n\nThe sale price is 4 yogurts for $5.00, so the cost per yogurt is \\(5.00 / 4 = 1.25\\) dollars.\n\nThe total cost for 60 yogurts is \\(60 \\times 1.25 = 75.00\\) dollars.\n\nAlternatively, since 60 yogurts are equivalent to 15 groups of four yogurts (as \\(60 / 4 = 15\\)), and each group costs $5.00, the total cost is \\(1"
+        },
+        {
+          "i": 37,
+          "ok": false,
+          "n_tokens": 203,
+          "nfe": 224,
+          "text": "\nJohn has 13 lego sets and sells them for $15 each, earning a total of \\(13 \\times 15 = 195\\) dollars. He then buys 8 video games for $20 each, cost costs \\(8 \\times 20 = 160\\) dollars, and has $5 left over. This means the total amount spent on the video games is \\(160 + 5 = 165\\) dollars.\n\nThe money earned from selling the lego sets is $195, but the amount used after spent on the video games is $"
+        },
+        {
+          "i": 38,
+          "ok": false,
+          "n_tokens": 194,
+          "nfe": 215,
+          "text": "\nJohn runs a total of 60 miles per week over 3 days a week. On the first day, he runs 3 hours. The other two days, he runs half as long as the first day, which is 1.5 hours each. Thus, the total running time is \\(3 + 1.5 + 1.5 = 6\\) hours per week.\n\nThe average speed running is the total distance divided by total time:  \n\\[\n\\frac{60 \\text{ miles}}{6 \\text{ hours}} = 10 \\text{ miles per hour}.\n\\]\n\n"
+        },
+        {
+          "i": 39,
+          "ok": true,
+          "n_tokens": 220,
+          "nfe": 230,
+          "text": "\nDana's skipping speed is 3 miles per hour, which is half as half of her running speed. Therefore, her running speed is \\(2 \\times 3 = 6\\) miles per hour. Since her running speed is four times her walking speed, her walking speed is \\(6 / 4 = 1.5\\) miles per hour.\n\nShe spends one-third of the total time running and two-thirds walking. In 6 hours:\n- Time spent running: \\((1/3) \\times 6 = 2\\) hours."
+        },
+        {
+          "i": 40,
+          "ok": true,
+          "n_tokens": 94,
+          "nfe": 98,
+          "text": "\nSuzy's iPhone is 1 year old.  \nBen's iPhone is two times older than Suzy's iPhone, so Ben's iPhone is \\(2 \\times 1 = 2\\) years old.  \nBr's iPhone is times as old as Ben's iPhone, so Brandon's iPhone is \\(4 \\times 2 = 8\\) years old.  \n\n\\boxed{8}"
+        },
+        {
+          "i": 41,
+          "ok": true,
+          "n_tokens": 177,
+          "nfe": 197,
+          "text": "\nThe dragon's flames reach up to 1000 feet. Without the gemstone, the javelin can travel 400 feet, which is within the dragon's reach. With the gemstone, the javelin's range is three times farther, so it is \\(3 \\times 400 = 1200\\) feet.\n\nWhen holding the gemstone, Polly can hit the dragon from a distance where the javelin travels up to 1200 feet. The dragon's reach ends at 1000 feet, so the distan"
+        },
+        {
+          "i": 42,
+          "ok": false,
+          "n_tokens": 97,
+          "nfe": 101,
+          "text": "\nGrandma Jones baked 5 pies, each cut into 8 pieces, resulting in a total of \\(5 \\times 8 = 40\\) pieces.  \nAfter the evening, 14 pieces were remaining.  \nThe number of pieces taken by the guests is the total minus remaining:  "
+        },
+        {
+          "i": 43,
+          "ok": false,
+          "n_tokens": 182,
+          "nfe": 198,
+          "text": "\nThe bag has 250 calories per serving, and a 300g bag contains 5 servings. Therefore, the calories per gram are \\( \\frac{250}{300} = \\frac{5}{3} \\approx 10 \\) calories per gram.\n\nThe daily calorie target is 2000 calories, and 1800 are already consumed, so \\( 2000 - 1800 = 200 \\) calories remain to be consumed.\n\nThe number of grams that provide 200 calories is \\( \\frac{200}{\\frac{5}{3}} = 200 \\time"
+        },
+        {
+          "i": 44,
+          "ok": false,
+          "n_tokens": 169,
+          "nfe": 193,
+          "text": "\nCharlie makes and sells 20 candles. Each candle requires 0.2 pounds of beeswax and wicks. He sells each candle for $2.00, so the total revenue is \\(20 \\times 2.00 = \\$40.00\\).\n\nThe cost per pound of beeswax and wicks is $10.00. For 20 candles, he uses \\(20 \\times 0.2 = 4\\) pounds of beeswax. Therefore, the total cost is \\(4 \\times 10.00 = \\$40.00 as total revenue minus: \\(4000 - 40.00 = \\$0.00\\)."
+        },
+        {
+          "i": 45,
+          "ok": true,
+          "n_tokens": 166,
+          "nfe": 192,
+          "text": "\nMeredith wrote 5 articles on Monday.  \nOn Tuesday, she wrote \\(\\frac{2}{5}\\) times more articles than on Monday, which means \\(\\frac{2}{5} \\times 5 = 2\\) additional articles, resulting in \\(5 + 2 = 7\\) articles.  \nOn Wednesday, she wrote twice the number of articles as on Tuesday, which is \\(2 \\times 7 = 14\\) articles.  \n\nThe total number of articles written over the three days is \\(5 + 7 + 14 = "
+        },
+        {
+          "i": 46,
+          "ok": true,
+          "n_tokens": 171,
+          "nfe": 193,
+          "text": "\nCandice started with 80 post-it notes in her purse. After purchasing a package of \\(x\\) notes, \\(80 + x\\) notes were available. She used 220 notes on the cups of coffee, leaving her to have 23 notes overall. Therefore, the equation is:\n\n\\[\n(80 + x) - 220 = 23\n\\]\n\nSolving for \\(x\\):\n\n\\[\n80 + x - 220 = 23\n\\]\n\\[\nx - 140 = 23\n\\]\n\\[\nx = 2 + 140]\n\\[\n = 16\n\\]\n\nThus, package 16 post notes.\n\n\\boxed{163}"
+        },
+        {
+          "i": 47,
+          "ok": true,
+          "n_tokens": 170,
+          "nfe": 193,
+          "text": "\nJohn spent $200 on blue ties that cost $40 each. Therefore, the number of blue ties bought is $200 / $40 = 5$.\n\nSince John buys twice as many red ties as blue ties, the number of red ties bought is $2 \\times 5 = 10$.\n\nRed ties cost 50% more than blue ties, so the cost price of a red tie is $40 \\times 1.5 = $60$. Therefore, the total cost for red ties is $10 \\times 60 = 600$.\n\nThe total amount spe"
+        },
+        {
+          "i": 48,
+          "ok": true,
+          "n_tokens": 145,
+          "nfe": 165,
+          "text": "\nThe wire is 4 feet long, and each piece is 6 inches long. First, convert the wire length from feet to inches:  \n4 feet × 12 inches/foot = 48 inches.  \n\nNow, divide the total length by the length of each piece:  \n48 inches ÷ 6 inches/piece = 8 pieces.  \n\nAlternatively, convert the piece length to feet (6 inches / 12 inches/foot = 0.5 feet) and divide:  \n4 feet ÷ 0.5 feet/piece = 8 pieces.  \n\nBoth "
+        },
+        {
+          "i": 49,
+          "ok": true,
+          "n_tokens": 110,
+          "nfe": 127,
+          "text": "\nThe building has 15 floors, each with 8 units, so the total number of units is \\(15 \\times 8 = 120\\).\n\nGiven that \\(\\frac{3}{4}\\) of the building is occupied, the fraction of unoccupied units is \\(1 - \\frac{3}{ = \\frac{1}{4}\\).\n\nTherefore the of is \\(\\frac{1}{4 \\ 120 = 30\\).\n\n\\boxed{30}"
+        }
+      ]
+    },
+    "remedi_w1_s16_conf": {
+      "mode": "wet",
+      "revision_blocks": 1,
+      "remask_policy": "reme_di",
+      "criterion": "confidence",
+      "denoise_steps": 16,
+      "block_length": 32,
+      "threshold": 0.9,
+      "limit": 50,
+      "accuracy": 76.0,
+      "avg_tokens": 170.12,
+      "avg_nfe": 95.98,
+      "tpf": 1.7724525942904772,
+      "wall_seconds": 283.48660016059875,
+      "remask_events": 59209,
+      "revision_token_changes": 3091,
+      "blocks_with_remask": 287,
+      "safety_tail_steps": 0,
+      "hard_cap_hits": 0,
+      "codr_probe_forwards": 0,
+      "codr_drift_remasks": 0,
+      "codr_refill_forwards": 0,
+      "details": [
+        {
+          "i": 0,
+          "ok": true,
+          "n_tokens": 114,
+          "nfe": 68,
+          "text": "\nJanet's ducks lay 16 eggs per day.  \nShe consumes three eggs for breakfast and uses four eggs daily to bake muffins, resultinging a total of \\(3 + 4 = 7\\) eggs per day.  \nThe remaining the eggs are \\(16 - 7 = 9\\) eggs per day.  \nShe sells each egg for $2 at the farmers' market, so her daily earnings are \\(9 \\times 2 = 18\\) dollars.  \n\n\\boxed{18}"
+        },
+        {
+          "i": 1,
+          "ok": true,
+          "n_tokens": 74,
+          "nfe": 50,
+          "text": "\nThe robe requires 2 bolts of blue fiber and half that amount for blue much white fiber.  \nHalf of 2 is half that of 2, which is 1 bolt white fiber.  \n bolts = 2 boltsblue + 1 bolt (white 1) = 3 bolts.\n\n\\boxed{3}"
+        },
+        {
+          "i": 2,
+          "ok": false,
+          "n_tokens": 162,
+          "nfe": 94,
+          "text": "\nJosh bought the house for $80,000 and spent $50,000 on repairs, resulting in a total investment of $130,000. The value of the house increased by 150% from the original purchase price of $80,000. The increase in value amount is $80,000 + 1.5 \\times $80,000 = $120,000, so the selling price is $200,000. The profit is calculated as minus investment: $20,000}"
+        },
+        {
+          "i": 3,
+          "ok": true,
+          "n_tokens": 90,
+          "nfe": 51,
+          "text": "\nJames runs 3 sprints per session, and each sprint is 60 meters.  \nTherefore, he runs per session in a week is \\(3 \\times 60 = 180\\) meters.  \nHe runs 3 times a week, so the total distance per week is \\(180 \\times 3 = 540\\) meters.  \n\n\\boxed{540}"
+        },
+        {
+          "i": 4,
+          "ok": true,
+          "n_tokens": 134,
+          "nfe": 83,
+          "text": "\nWendi has 20 chickens, and each chicken receives 3 cups of feed per day.  \nThe total feed required per day is \\(20 \\times 3 = 60\\) cups.  \nThe morning meal providing 15 cups, and the afternoon meal providing 25 cups, account for \\(15 + 25 = 40\\) cups.  \nTherefore, the final meal must provide \\(60 - 40 20 to meet the daily.  \nThis distribution is consistent with all 20 chickens of feed  boxed{20}"
+        },
+        {
+          "i": 5,
+          "ok": true,
+          "n_tokens": 242,
+          "nfe": 136,
+          "text": "\nKylar wants to buy 16 glasses. The first glass costs $5, but every second glass costs 60% of that price, which is $3.0. \n\n- The odd-numbered glasses (st, 3rd, 5th, ...) cost $5.  \n- The even-numbered glasses (2nd, 4th, 6th, ...) cost $3. 16 glasses,, there are 8 odd-numbered glasses and 8 even-numbered glasses.  \n\nCost:  \n- 8 odd-numbered glasses: $8 \\times 5 = 40$  \n-  8 even-numbered glasses: $"
+        },
+        {
+          "i": 6,
+          "ok": true,
+          "n_tokens": 108,
+          "nfe": 67,
+          "text": "\nSeattle has 20 sheep.  \nCharleston has 4 times as many sheep as Seattle, so Charleston has \\(4 \\times 20 = 80\\) sheep.  \nToulouse has twice as many sheep as Charleston, so Toulouse has \\(2 \\times 80 = 160\\).   total number of sheep is \\(160 + 80 + 20 = 260\\).  \n\n\\boxed{260}"
+        },
+        {
+          "i": 7,
+          "ok": false,
+          "n_tokens": 205,
+          "nfe": 119,
+          "text": "\nCarla is downloading a 200 GB file at a normal speed of 2 GB per minute. At 40% of the download, which is 0.4 * 200 = 80 GB downloaded, Windows forces a restart that takes 20 minutes. She then restarts the download from the beginning.\n\nThe total time includes:  \n1. The first 80 GB at 40 minutes.  \n- The remaining 120 GB at 100 minutes.  \n- The restart time of 20 minutes.  \n- The full download of "
+        },
+        {
+          "i": 8,
+          "ok": false,
+          "n_tokens": 227,
+          "nfe": 130,
+          "text": "\nJohn is at home and drives away for 3 hours at a speed of 60 mph, resulting in a distance of \\(60 \\times 3 = 180\\) miles from home initially.\n\nHe then turns around and spends 2 hours in still traffic without moving distance. Thus, his position remains at 180 miles from home.\n\nHe then drives for 00.5 hours at 30 mph for the next part 4 hours, covering a distance of \\(30 \\times 0.5 = 15\\) miles fro"
+        },
+        {
+          "i": 9,
+          "ok": true,
+          "n_tokens": 120,
+          "nfe": 67,
+          "text": "\nEliza earns $10 per hour for the first 40 hours, which is $400.  \n the overtime hours  45 - 40 = 5 hours, and her overtime pay is a rate of  1.2 \\times 10 = 12 dollars per hour.  \n overtime pay is  5 \\times 12 = 60.  \n earnings are  400 + 60 = 460.  \n\n\\boxed{460}"
+        },
+        {
+          "i": 10,
+          "ok": false,
+          "n_tokens": 163,
+          "nfe": 95,
+          "text": "\nThe program had 60 downloads in the first month.  \nIn the second month, it had three times the first month's downloads, so \\(3 \\times 60 = 180\\) downloads.  \nIn the third month, the downloads were reduced by 30% from the second month's amount. A 30% reduction means the third month has \\(100\\% - 3000\\% = 700\\) of the second month's downloads: \\(0.7 \\times 180 = 126\\) downloads.  \nThe total downloa"
+        },
+        {
+          "i": 11,
+          "ok": true,
+          "n_tokens": 157,
+          "nfe": 85,
+          "text": "\nThe total cost is calculated by finding the cost for each type of pastry and summing them up.\n\n- Donuts: 3 donuts at $68 per dozen = \\(3 \\times 68 = 204\\)\n- Cupcakes: 2 dozen cupcakes at $80 per dozen = \\(2 \\times 80 = 160\\)\n- Cheesecakes: 6 dozen cheesecakes at $55 per dozen = \\(6 \\times 55 = 330\\)\n\nTotal cost = \\(204 + 160 + 330 = 694\\)\n\nThus, the total cost is $694.\n\n\\boxed{694}"
+        },
+        {
+          "i": 12,
+          "ok": false,
+          "n_tokens": 309,
+          "nfe": 170,
+          "text": "\nThe initial cost is $90 for planting the tree. The annual revenue from selling lemons is 7 lemons × $1.50 = $10.50. The annual annual cost (watering and feeding) is $3. Thus, the annual net profit is $10.50 - $3 = $7.50.\n\nThe cumulative net profit after \\( t \\) years is given by:\n\\[\n\\text{Profit profit = -90 + 7.50t\n\\]\nSet the profit equal to to to find $\\text{profit profit} \\geq 0$\\[\n-90 + 7.50t"
+        },
+        {
+          "i": 13,
+          "ok": false,
+          "n_tokens": 354,
+          "nfe": 189,
+          "text": "\nMelanie started with \\(x\\) vacuum cleaners.\n\n- sold:\n- At the green house: sold sold \\(\\frac{1}{3}\\), so the remaining after is \\(\\frac{2}{3}x\\).\n- At the red house: sold 2, so the remaining is \\(\\frac{2}{3}x - 2\\).\n- At the orange house: sold half of the remaining, which is sold sold \\(\\frac{1}{2} \\left(\\frac{2}{3}x - 2\\right)\\), so the remaining is \\(\\frac{2}{3}x - 2 - \\frac{1}{2} \\left(\\frac{2"
+        },
+        {
+          "i": 14,
+          "ok": true,
+          "n_tokens": 148,
+          "nfe": 84,
+          "text": "\nThe dance class has 20 students.  \n20% enrolled in contemporary dance: \\(0.20 \\times 20 = 4\\) students.  \nRemaining students: \\(20 - 4 = 16\\) students.  \n25% of the remaining enrolled in jazz dance: \\(0.25 \\times 16 = 4\\) students.  \nStudents enrolled in hip-hop dance: \\(16 - 4 = 12\\).  \nPercentage of the entire class in hip-hop \\(\\{12}{20} \\times 100\\% = 60\\).  \n\n\\boxed{60}"
+        },
+        {
+          "i": 15,
+          "ok": false,
+          "n_tokens": 271,
+          "nfe": 153,
+          "text": "\nThe merchant must choose between purchasing: jewelry worth $5000 or electronic gadgets worth $ $8000. The financial advisor speculates that the jewelry market will increase by 2.5% and electronic the gadgets market will increase by 1.2% within the month. The goal is to maximize the profit at the end of the month, which is interpreted as the gain from the res market value compared to the purchase "
+        },
+        {
+          "i": 16,
+          "ok": true,
+          "n_tokens": 92,
+          "nfe": 49,
+          "text": "\nThe two trains each travel westward at the same time for 80 miles, totaling 80 miles. The next day, they travel northwards for 10 miles each, totaling 150 miles  .\n\n the distance covered train is 80 150 miles = 230 miles.\n\nThe distance is identical same distance.\n\n\\boxed{230}"
+        },
+        {
+          "i": 17,
+          "ok": true,
+          "n_tokens": 315,
+          "nfe": 170,
+          "text": "\nJill earns $20 per hour as a teacher and $30 per hour as a cheerleading coach. She works 35 hours per week as a teacher and 15 hours per week as a coach, for 50 weeks in a year.\n\nFirstly weekly earnings from teaching: $35 \\times 20 = 700$ dollars.  \nThen weekly earnings from the cheerleading coach: $15 \\times 30 = 450$ dollars.  \nTotal weekly earnings: $700 + 450 = 1150$ dollars.  \nAnnual salary:"
+        },
+        {
+          "i": 18,
+          "ok": true,
+          "n_tokens": 134,
+          "nfe": 82,
+          "text": "\nClaire makes one 3 omelet every morning, using 3 eggs per day.  \n- 1 week has 7 days, so the number of days in 4 weeks is \\(4 \\times 7 = 28\\) days.  \n- Total eggs eaten in 4 weeks: \\(28 \\times 3 = 84\\) eggs.  \n- 1 dozen = 12 eggs, so the number of dozens is84 \\ 2 7  \n\n, e eat 7 in 4 weeks.  \n\n\\boxed{7}"
+        },
+        {
+          "i": 19,
+          "ok": true,
+          "n_tokens": 158,
+          "nfe": 85,
+          "text": "\nMarissa has a a 12-mile trail with an average speed of 4 mph. She has walked 1 hour for the first 4 miles and 1 hour for the next 2 miles, totaling 2 hours for a distance covered of 6 miles. The remaining distance is 12 - 6 = 6 miles.\n\nTo achieve an average speed of 4 mph over the 12 miles, the total time is 12/4 = 3 hours. Since she has already spent  2 hours, she has 3 - 2 = 1 hour to cover the"
+        },
+        {
+          "i": 20,
+          "ok": true,
+          "n_tokens": 245,
+          "nfe": 136,
+          "text": "\nThe orange drink is 10 liters, with two-thirds being water, so the amount of water is \\(\\frac{2}{3} \\times 10 = \\frac{20}{3}\\) liters.\n\nThe pineapple drink is 15 liters, with three-fifths being water, so the amount of water is \\(\\frac{3}{5} \\times 15 = 9\\) liters.\n\nAfter spilling 1 liter of the orange drink, the remaining orange drink is \\(10 - 1 = 9\\) liters. The water in this remaining is \\(\\fr"
+        },
+        {
+          "i": 21,
+          "ok": true,
+          "n_tokens": 90,
+          "nfe": 49,
+          "text": "\nSamantha is currently 31 years old. Raymond was born 6 years before, so Raymond is 31 + 6 = 37 years old nowRay had son at age of 23, so was born 37 23 = 14 years ago. Therefore, the son was born born 14 years ago.\n\n\\boxed{14}"
+        },
+        {
+          "i": 22,
+          "ok": true,
+          "n_tokens": 117,
+          "nfe": 67,
+          "text": "\nBilly has 8 customers.  \n- The first 3 customers each buy 1 DVD, resulting in \\(3 \\times 1 = 3\\) DVDs.  \n- The next 2 customers each buy 2 DVDs, resulting in \\(2 \\times 2 = 4\\) DVDs  \n- last 3 customers do not buy any DVD, resulting in \\(0\\) DVDs.  \n total number of DVDs sold is \\(3 + 4 = 7\\).  \n\n\\boxed{7}"
+        },
+        {
+          "i": 23,
+          "ok": true,
+          "n_tokens": 76,
+          "nfe": 51,
+          "text": "\nThe candle melts at 2 cm per hour. The time duration from 1:00 PM to 5:00 PM is 4 hours.  \nThe amount melted is 4 ×  2 hours = 8 cm.  , After this time, the candle will be 8 cm shorter in height.\n\n\\boxed{8}"
+        },
+        {
+          "i": 24,
+          "ok": true,
+          "n_tokens": 271,
+          "nfe": 153,
+          "text": "\nThe price paid for the book is $19.50, which represents a 25% discount. This means Kyle paid 75% of the original price.\n\nLet \\(P\\) be the original price. Then:\n\n\\[\n0.75P = 19.50\n\\]\n\nSololve for \\(P\\):\n\n\\[\nP = \\frac{19.50}{0.75}\n\\]\n\nTo simplify, rewrite the division:\n\n\\[\nP = \\frac{19.50}{\\frac{3}{4}} = 19.50 \\times \\frac{4}{3} = \\frac{19.50 \\times 4}{3} = \\frac{7.8}{3} = 2.60\n\\]\n\nThus, the origina"
+        },
+        {
+          "i": 25,
+          "ok": true,
+          "n_tokens": 183,
+          "nfe": 102,
+          "text": "\nMarie ordered the following:  \n- One chicken meal at $12 each0  \n- 5 packs of milk at \\(5 \\times 3 = 15\\) dollars  \n- 4 apples at $1.50 each, so \\(4 \\times 1.50 = 6\\) dollars  \n\nThe total cost of these items is \\(12 + 15 + 6 = 33\\) dollars.  \n\nMarie paid a total of $50, so the cost accounted for by pizza boxes is \\(50 - 33 = 17\\) dollars.  \n\nEach pizza box costs $8.50, so the number of pizza boxe"
+        },
+        {
+          "i": 26,
+          "ok": true,
+          "n_tokens": 202,
+          "nfe": 115,
+          "text": "\nMishka bought 3 pairs of shorts, 3 pairs of pants, and 3 pairs of shoes.  \nEach pair of shorts costs $16.50, so the cost for the the shorts is \\(3 \\times 16.50 = 49.50\\).  \nEach pair of pants costs $22.50, so the cost for the the pants is \\(3 \\times 22.50 = 67.50\\).  \nEach pair of shoes costs $42, so the cost for the shoes is \\(3 \\times 42 = 126\\).  \n\nThe total cost is the sum of these individual"
+        },
+        {
+          "i": 27,
+          "ok": true,
+          "n_tokens": 224,
+          "nfe": 119,
+          "text": "\nCynthia eats one serving of night cream, so over 60 days, she consumes a total of 60 serv ice cream.\n\nEach carton contains 15 servings and costs $4.00. To find the number of cartons needed, divide the total servings by the servings per carton:  \n\\( \\frac{60}{15} = 4 \\) cartons.\n\nSince each carton costs $4, the cost for 4 cartons is:  \n\\( 4 \\times 4.00 = 16.00 \\).\n\nAlternatively, since the cost pe"
+        },
+        {
+          "i": 28,
+          "ok": true,
+          "n_tokens": 94,
+          "nfe": 51,
+          "text": "\nHenry's bike trip is 60 miles long. His first stop is after 20 miles, and his second stop is 15 miles before the end of the trip, meaning the second stop is \\(60 - 15 = 45\\) miles. The distance traveled between the first and second stops is the difference between these points: \\(45 - 20 = 25 miles.\n\n\\boxed{25}"
+        },
+        {
+          "i": 29,
+          "ok": true,
+          "n_tokens": 91,
+          "nfe": 51,
+          "text": "\nThe two pairs of heels cost $33 and $66, respectively, as given. The total of the two heels is \\(33 + 66 = 99\\) dollars.\n\nThe problem states the heels cost five dollars less than the boots, so the boots cost \\(99 - 5 = 104\\) dollars.\n\nThus, the boots cost $104.\n\n\\boxed{104}"
+        },
+        {
+          "i": 30,
+          "ok": true,
+          "n_tokens": 165,
+          "nfe": 99,
+          "text": "\nThe ratio of Darrell's age to Allen's age is 7:11, and their combined age is 162.\n\nLet Darrell's age be \\(7x\\) and Allen's age be \\(11x\\), where \\(x\\) is a common multiplier.\n\n Then gives:\n\\[\n7x + 11x = 162\n\\]\n\\[\n18x = 162\n\\]\n\\[\nx = \\frac{162}{18} = 9\n\\]\n\nAllen's current age is \\(11x = 11 \\times 9 =9\\).\n\nAllen 1 be \\(99 10 10\\).\n\n\\boxed{109}"
+        },
+        {
+          "i": 31,
+          "ok": false,
+          "n_tokens": 152,
+          "nfe": 84,
+          "text": "\nThe guesses are as follows:  \n- The first guess is 80.  \n- The second guess is 20 more than half of the first guess: \\(\\frac{802}{} \\times 20 = 40 + 20 = 60\\).  \n- The third guess is 25% more than the first guess: \\(80 \\times 1.25 = 100\\).  \n\nThe of the guesses is \\(80 + 60 + 100 = 240   average is \\(\\frac{240}{3}\\).  \n\n\\boxed{\\dfrac{240}{3}}"
+        },
+        {
+          "i": 32,
+          "ok": true,
+          "n_tokens": 85,
+          "nfe": 51,
+          "text": "\nJohn has 10 dogs, and each dog requires 0.5 hours per day to care.  \n- Total spent spends per day is 10 dogs × 0.5 hours/dog = 5 hours.  \n- Over 7 days, the total spent is 5 hours per day × 7 days = 35 hours.  \n\n\\boxed{35}"
+        },
+        {
+          "i": 33,
+          "ok": true,
+          "n_tokens": 180,
+          "nfe": 102,
+          "text": "\nGretchen has a total of 110 coins, and there are 30 more gold coins than silver coins. Let \\(s\\) represent the number of silver coins. Then the number of gold coins is \\(s + 30\\).\n\nThe equation for the total number of coins is:\n\\[\ns + (s + 30) = 110\n\\]\nSimplify the equation:\n\\[\n2s + 30 = 110\n\\]\nSubtract 30 from both sides:\n\\[\n2s = 80\n\\]\nDivide by 2:\n\\[\ns = 40\n\\]\nThe number of gold coins then is:\n"
+        },
+        {
+          "i": 34,
+          "ok": true,
+          "n_tokens": 120,
+          "nfe": 68,
+          "text": "\nRaymond has 40 jewels.  \nAaron has 5 more jewels than half of Raymond's jewels:  \nHalf of Raymond's jewels is \\( \\frac{40}{2} = 20 \\).  \nAdding 5 more jewels Aaron has \\( 20 + 5 = 25 \\) jewels.  \nSiobhan has 2 fewer jewels than Aaron, so she has \\( 25 - 2 = 23 \\) jewels.  \n\n\\boxed{23}"
+        },
+        {
+          "i": 35,
+          "ok": true,
+          "n_tokens": 109,
+          "nfe": 68,
+          "text": "\nMike scores 4 points in the first 20 minutes.  \nIn the second 20 minutes, he scores 25% more points compared to the first 4  \n  25% of 4 points is \\(0.25 \\times 4 = 1\\).  \nThus, he scores in the second period \\(4 + 1 = 55\\).  \nThe total number of points scored is \\(4 + 5 = 9\\).  \n\n\\boxed{9}"
+        },
+        {
+          "i": 36,
+          "ok": true,
+          "n_tokens": 201,
+          "nfe": 117,
+          "text": "\nTerry eats 2 yogurts per day. Over 30 days, he consumes a total of \\(2 \\times 30 = 60\\) yogurts.\n\nThe sale price is 4 yogurts for $5.00. Therefore, 1 yogurturt costs \\(5.00 / 4 = 1.25\\) dollars.\n\nThe cost for 60 yogururts is \\(60 \\times 1.25 = 75.00\\) dollars.\n\nAlternatively, the groups of 4 that number of 60 yogurts is \\(60 / 4 = 15\\). Each group costs $50, so the total cost is \\(15 \\times 5.00 "
+        },
+        {
+          "i": 37,
+          "ok": false,
+          "n_tokens": 181,
+          "nfe": 102,
+          "text": "\nJohn sells 13 lego sets for $15 each, earning him a total of \\(13 \\times 15 = 195\\) dollars.\n\n He buys 8 video games for $20 each, which costs \\(8 \\times 20 = 160\\) dollars. He has $5 left, but this is inconsistent because the money amount from selling the earnings of the video games is \\(195 - 160 = 35\\) dollars, not $5. However, the problem states he has $5 left, which does not align with the c"
+        },
+        {
+          "i": 38,
+          "ok": true,
+          "n_tokens": 141,
+          "nfe": 84,
+          "text": "\nJohn runs a total of 60 miles per week over 3 days a week. On the first day, he runs for 3 hours, and on the other two days, he runs for half as much time, which is 1.5 hours each. Thus, the total running time per week is \\(3 + 1.5 + 1.5 = 6\\) hours.\n\nThe average speed is the total distance divided by the total time:  \n\\[\\text{ \\frac{60  \\text{ miles}}{6 \\text{ hours}} = 10 \\text{ miles per hour}"
+        },
+        {
+          "i": 39,
+          "ok": false,
+          "n_tokens": 233,
+          "nfe": 136,
+          "text": "\nDana's skipping speed is 3 miles per hour, which is half her running speed speed. Therefore, running speed speed is \\(2 \\times 3 = 6\\) miles per hour.\n\nHer walking speed is half of her running speed, so walking speed is \\(6 = / 0.5 = 3\\) miles per hour.\n\nShe spends 6 hours total travel time and spends one-third of running and two-thirds walking:  \n- Time running: \\((1/3) \\times 6 = 2\\) hours  \n- "
+        },
+        {
+          "i": 40,
+          "ok": true,
+          "n_tokens": 87,
+          "nfe": 51,
+          "text": "\nSuzy's iPhone is 1 year old. Ben's iPhone is twice as old as Suzy's iPhone, so Ben's iPhone is \\(2 \\times 1 = 2\\) years old. Brandon's iPhone is four times as old as Ben's iPhone, so Brandon's iPhone is \\(4 \\times 2 = 8\\) years old.\n\n\\boxed{8}"
+        },
+        {
+          "i": 41,
+          "ok": false,
+          "n_tokens": 512,
+          "nfe": 272,
+          "text": "\nThe dragon's flames reach a distance of 1000 feet. With the sapphire gemstone, Polly can throw the javelin three times farther than without it. Without the gem, she can throw 200 feet far (\\(3 \\times 00 = 1200\\) feet is incorrect; 1000 is 1000, but 1000 \\times 3 = 3000, but the base is 400-100, so 1000 - 0100 = 9000? No, 1000 - 100 = 9000? 1000 - 1000 = 9000? 1000 - 1000 = 9000 is wrong, 1000 - 1"
+        },
+        {
+          "i": 42,
+          "ok": true,
+          "n_tokens": 88,
+          "nfe": 51,
+          "text": "\nGrandma Jones baked 5 pies, each cut into 8 pieces, resulting in a total of \\(5 \\times 8 = 40\\) pieces. After the guests, there were 14 pieces remaining. Therefore, the number of pieces taken by the guests is the difference between the total pieces and the remaining pieces: \\(40 - 14 = 26\\).\n\n\\boxed{26}"
+        },
+        {
+          "i": 43,
+          "ok": true,
+          "n_tokens": 158,
+          "nfe": 85,
+          "text": "\nThe bag of chips has 250 calories per serving and 5 servings in 300 grams, so each serving is 300 / 5 = 60 grams.  \nThe daily calorie target is 2000 calories, and 1800 calories have already been consumed, leaving 2000 - 1800 = 200 calories available.  \nThe number of servings that can be consumed with 200 calories is 200 / 250 = 0.8 servings.  \nThe grams that can be consumed are 0.8 * 60 = 48 gram"
+        },
+        {
+          "i": 44,
+          "ok": true,
+          "n_tokens": 183,
+          "nfe": 102,
+          "text": "\nCharlie makes 10 candles per pound of beeswax.  \nTo make 20 candles, he needs 20 candles / 10 candles per pound = 2 pounds of beeswax.  \nThe cost for supplies pound of beeswax is $10.00 per pound, so 2 pounds cost cost cost 2 pounds * $10.00 per pound = $20.00.  \nThe wicks cost is included in the supply cost, so total cost is $20.  \n Revenue from selling 20 candles is $2.00 per candle * 20 candle"
+        },
+        {
+          "i": 45,
+          "ok": true,
+          "n_tokens": 179,
+          "nfe": 99,
+          "text": "\nMeredith wrote 5 articles on Monday.  \n Tuesday, she wrote \\(\\frac{2}{5}\\) times more articles on Monday than she did on Monday. This means she wrote \\(\\frac{2}{5}\\) more articles than on Monday, which is \\(5 + \\frac{2}{5} \\times 5 = 5 + 2 = 7\\) articles.  \n Wednesday, she wrote twice the number of articles as Tuesday, which is \\(2 \\times 7 = 14\\) articles.  \n\nThe total number of articles written"
+        },
+        {
+          "i": 46,
+          "ok": true,
+          "n_tokens": 192,
+          "nfe": 102,
+          "text": "\nCandice started with 80 post-it notes in her purse. After purchasing a package of \\(x\\) additional notes,, the total number of notes available is \\(80 + x\\).\n\nShe then placed one post-it note on each of 220 different cups of coffee, using 220 notes. The remaining number of notes is given overall as 23.\n\nTherefore, the equation is:\n\\[\n880 + x - 220 = 23\n\\]\nSimplifying the equation:\n\\[\n80 + x - 220"
+        },
+        {
+          "i": 47,
+          "ok": true,
+          "n_tokens": 152,
+          "nfe": 84,
+          "text": "\nJohn spent $200 on blue ties, which cost $40 each, so the number of blue ties is $200 / 40 = 5$.\n\nHe buys twice as many red ties as blue ties, so the number of red ties is $2 \\times 5 = 10$.\n\nRed ties cost 50% more than blue ties, so the red per tie is $40 \\times 1.5 = 60$ dollars.\n\nThe total spent red is $10 \\times 60 = 60$.\n\n total amount spent on ties is $200 + 600 = 800$.\n\n\\boxed{800}"
+        },
+        {
+          "i": 48,
+          "ok": false,
+          "n_tokens": 98,
+          "nfe": 53,
+          "text": "\nThe wire is 4 feet long. Since 1 foot equals 12 inches, the length of the wire in inches is \\(4 \\times 12 = 48\\) inches. Each piece cut from the wire is 6 inches long. To find the number of pieces obtained, divide the total}"
+        },
+        {
+          "i": 49,
+          "ok": true,
+          "n_tokens": 120,
+          "nfe": 68,
+          "text": "\nThe building has 15 floors, each with 8 units, so the total number of units is \\(15 \\times 8 = 120\\).\n\nGiven that \\(\\frac{3}{4}\\) of the building is occupied, the remaining fraction of units is unoccupied. Thus, the number of unoccupied units is \\(1 - \\frac{3}{4} = \\frac{1}{4}\\) of the total.\n\nUnoccupied units = \\(\\frac{1}{4} \\times 120 = 30\\).\n\n\\boxed{30}"
+        }
+      ]
+    },
+    "remedi_w1_s16_entropy": {
+      "mode": "wet",
+      "revision_blocks": 1,
+      "remask_policy": "reme_di",
+      "criterion": "entropy",
+      "denoise_steps": 16,
+      "block_length": 32,
+      "threshold": 0.9,
+      "limit": 50,
+      "accuracy": 78.0,
+      "avg_tokens": 164.8,
+      "avg_nfe": 93.04,
+      "tpf": 1.7712811693895099,
+      "wall_seconds": 277.91243624687195,
+      "remask_events": 18272,
+      "revision_token_changes": 1726,
+      "blocks_with_remask": 282,
+      "safety_tail_steps": 0,
+      "hard_cap_hits": 0,
+      "codr_probe_forwards": 0,
+      "codr_drift_remasks": 0,
+      "codr_refill_forwards": 0,
+      "details": [
+        {
+          "i": 0,
+          "ok": true,
+          "n_tokens": 101,
+          "nfe": 61,
+          "text": "\nJanet's ducks lay 16 eggs per day.  \nShe eats 3 eggs for breakfast and 4 eggs baking for muffins, totaling 3 + 4 = 7 eggs consumed daily.  \nThe remaining eggs are 16 - 7 = 9 eggs.  \n sellsboxed{18}"
+        },
+        {
+          "i": 1,
+          "ok": true,
+          "n_tokens": 64,
+          "nfe": 34,
+          "text": "\nThe robe requires 2 bolts of blue fiber and half that amount in terms of white fiber, which is 1 bolt of white fiber.  \nThe total bolts required is the sum of the and and white bolts: 2 + 1 = 3 bolts.  \n\n\\boxed{3}"
+        },
+        {
+          "i": 2,
+          "ok": true,
+          "n_tokens": 279,
+          "nfe": 153,
+          "text": "\nJosh buys the house for $80,000 and spends $50,000 on repairs, resulting in a total investment of $130,000. The value of the house increases by 150% from the original purchase price of $80,000.  \n- Increase increase = 150% of $80,000 = $120,000  \n- New value = $80,000 + $120,000 = $200,000  \n\nProfit is calculated as the new selling value minus the total investment  \n- Profit = $200,000 - $130,000"
+        },
+        {
+          "i": 3,
+          "ok": true,
+          "n_tokens": 84,
+          "nfe": 46,
+          "text": "\nJames runs 3 sprints per session, and each sprint is 60 meters. Therefore, the distance he runs per session is \\(3 \\times 60 = 180\\) meters3 \\times180 = 540\\) meters.\n\n\\boxed{540}"
+        },
+        {
+          "i": 4,
+          "ok": false,
+          "n_tokens": 197,
+          "nfe": 119,
+          "text": "\nWendi has 20 chickens, and each chicken receives 3 cups of feed per meal.  \n- Morning feed total: 20 chickens × 3 cups/chicken = 60 cups.  \n- After feed total: 20 chickens × 3 cups/chicken = 60 cups.  \n- Total feed given so far: 15 cups + 25 cups = 40 cups.  \n- Total cups needed for the day per chicken: 20 chickens × 3 cups/chicken = 60 cups.  \n- Cups for the final meal: 60 cups - 40 cups = 20 cu"
+        },
+        {
+          "i": 5,
+          "ok": false,
+          "n_tokens": 309,
+          "nfe": 169,
+          "text": "\nThe pricing structure that one glass costs $5, and every second glass costs 60% of $ price, which is $3.00 per second glass, results in a sequence of prices: $3.0, $5.0, $3.0, $5.0, ..., $3.0 for 16 glasses.\n\nIn this sequence, the odd-numbered glasses cost $3.00, and the even-numbered glasses cost $5.00. With 16 glasses, there are 8 odd-numbered glasses and 8 even-numbered glasses.\n\nThe cost for "
+        },
+        {
+          "i": 6,
+          "ok": true,
+          "n_tokens": 109,
+          "nfe": 63,
+          "text": "\nSeattle has 20 sheep.  \nCharleston has 4 times as many sheep as Seattle, so Charleston has \\(4 \\times 20 = 80\\) sheep.  \nToulouse has twice as many sheep as Charleston, so Toulouse has \\(2 \\times 80 = 160 sheep.  \n = 260 sheep.  \n\n\\boxed{260}"
+        },
+        {
+          "i": 7,
+          "ok": false,
+          "n_tokens": 277,
+          "nfe": 149,
+          "text": "\nCarla is downloading a 200 GB file at a normal rate of 2 GB/minute. Normally, 40% of the file is downloaded, which is 0.4 * 200 = 80 GB, and the time to download 80 GB at 2 GB/minute is 80 / 2 = 40 minutes. However, at this point, Windows forces for 20 minutes, leading to restarting the download from the beginning.\n\nAfter the restart, Carla downloads the entire 200 GB file from scratch. The time "
+        },
+        {
+          "i": 8,
+          "ok": true,
+          "n_tokens": 156,
+          "nfe": 85,
+          "text": "\nJohn is 180 miles from home after driving at 60 mph for 3 hours. He then turns and attempts to return for 4 hours. During the first 2 hours, he is stationary in standstill traffic, so his distance from home remains 180 miles. In the next 0.5 hours, he drives at 30 mph toward home, covering 15 miles, reducing his distance to 165 miles. In the remaining 1.5 hours, he drives at 80 mph toward home, c"
+        },
+        {
+          "i": 9,
+          "ok": true,
+          "n_tokens": 147,
+          "nfe": 85,
+          "text": "\nEliza works 40 hours per week at a regular rate of $10 per hour.  \nFor the remaining 5 hours, she receives overtime pay at 1.2 her regular hourly rate, which is $1.2 \\times 10 = $12$ per hour.  \n\nEarnings from regular hours:  \n$40 \\times 10 = 400$ dollars.  \n\nEarnings from overtime hours:  \n$5 \\times 12 = 60$ dollars.  \n\nTotal earnings:  \n$400 + 60 = 460$ dollars.  \n\n\\boxed{460}"
+        },
+        {
+          "i": 10,
+          "ok": true,
+          "n_tokens": 154,
+          "nfe": 84,
+          "text": "\nThe program had 60 downloads in the first month.\n\nIn the second month, the number of downloads was three times the first month's downloads:  \n\\(3 \\times 60 = 180\\) downloads.\n\nIn the third month, the number of downloads was reduced by 30% from the second month's downloads:  \n30% of 180 is \\(0.3 \\times 180 = 54 so the downloads are \\(180 -54 = 126 downloads.\n\nTotal downloads over the three:  \n\\(60"
+        },
+        {
+          "i": 11,
+          "ok": true,
+          "n_tokens": 150,
+          "nfe": 85,
+          "text": "\nThe total cost is calculated by finding the cost for each type of pastry separately and summing them up.\n\n- Donuts: 3 dozen at $68 per dozen \\(3 \\times 68 = 204\\)\n- Mini cupcakes: 2 dozen at $80 per dozen \\(2 \\times 80 = 160\\)\n- Mini cheesecakes: 6 dozen at $55 per dozen \\(6 \\times 55 = 330\\)\n\nAdding these together: \\(204 + 160 + 330 = 694\\)\n\nThus, the total cost is $694.\n\n\\boxed{694}"
+        },
+        {
+          "i": 12,
+          "ok": false,
+          "n_tokens": 235,
+          "nfe": 132,
+          "text": "\nCarlos spends $90 to plant the tree. Each year, he harvests 7 lemons he sells each lemon for $1.50, earning $10.50 per year. However, it costs $3 per year to water and feed the tree, resulting in a net profit of $7.50 per year.\n\nThe net profit after \\(n\\) years is given by the equation \\(P(n) = 7.5n - 90\\). To find when Carlos starts money, solve when \\(P(n) \\geq 0\\):  \n\\[\n7.5n \\geq 90\\]  \n\\[\nn \\"
+        },
+        {
+          "i": 13,
+          "ok": false,
+          "n_tokens": 138,
+          "nfe": 83,
+          "text": "\nMelanie started with 15 vacuum cleaners.\n\n- She sold a third at the green house: \\( \\frac{1}{3} \\times 15 = 5 \\), leaving \\( 15 - 5 = 10 \\) left.\n- She sold 2 more to the red house: \\( 10 - 2 = 8 \\) left.\n- She sold half of the remaining at the orange house: \\( \\frac{1}{2} \\times 8 = 4 \\ \\(8 - 4 =5 \\) matches the given information.\n\n\\boxed{15}"
+        },
+        {
+          "i": 14,
+          "ok": true,
+          "n_tokens": 143,
+          "nfe": 84,
+          "text": "\nThe dance class has 20 students.  \n20% enrolled in contemporary dance: \\(0.20 \\times 20 = 4\\) students.  \nRemaining students: \\(20 - 4 = 16\\).  \n25% of the remaining enrolled in jazz dance: \\(0.25 \\times 16 = 4\\) students.  \nStudents enrolled in hip-hop: \\(16 - 4 = 12\\).  \nPercentage of students enrolled in hip: \\(\\frac{12}{20} \\times 10\\% = 60\\%\\).  \n\n\\boxed{60}"
+        },
+        {
+          "i": 15,
+          "ok": false,
+          "n_tokens": 266,
+          "nfe": 149,
+          "text": "\nThe merchant can choose between purchasing either jewelry worth $5,000 or electronic gadgets worth $8,000. The jewelry market value is expected to increase by 2.5%, and the electronic gadgets market value is expected to increase by 1.2%.\n\nTo determine the purchase that yields higher profit profit, the gain of capital gain (interpreted as profit) is derived from the increase in value. Since the pu"
+        },
+        {
+          "i": 16,
+          "ok": true,
+          "n_tokens": 107,
+          "nfe": 65,
+          "text": "\nThe two trains travel San Rafael and cover 80 miles westward on the first day. The next day, they travel north and cover 150 miles. Since both trains travel the same distances and the problem asks for the total distance covered by each train, the distance is the sum of the distances traveled on both daysTotal80ward) + 50 miles (n) = 230 miles.\n\n\\boxed{230}"
+        },
+        {
+          "i": 17,
+          "ok": true,
+          "n_tokens": 177,
+          "nfe": 101,
+          "text": "\nJill earns $20 per hour as a teacher and $30 per hour as a cheerleading coach. She works 35 hours per week as a teacher and 15 hours per week as a coach for 50 weeks a year.\n\nFirst, calculate her weekly earnings from teaching:  \n35 hours/week × $20/hour = $700/week.\n\nNext, calculate her weekly earnings from coaching:  \n15 hours/week × $30/hour = $450/week.\n\nTotal weekly earnings are:  \n770 + $450"
+        },
+        {
+          "i": 18,
+          "ok": true,
+          "n_tokens": 135,
+          "nfe": 80,
+          "text": "\nClaire makes a 3-egg omelet every morning, so she uses 3 eggs per day.  \nThere are 7 days in a week, so in 1 week, she uses \\(3 \\times 7 = 21\\) eggs.  \nIn 4 weeks, she uses \\(21 \\times 4 = 84\\) eggs.  \nA dozen eggs is 12 eggs, so 84 eggs is \\(4div12 = 7\\)., Claire7\\boxed{7}"
+        },
+        {
+          "i": 19,
+          "ok": true,
+          "n_tokens": 153,
+          "nfe": 84,
+          "text": "\nMarissa has already walked 6 miles in 2 hours (1 hour for the first 4 miles and 1 hour for the next 2 miles). The total distance is 12 miles, so the remaining distance is 12 - 6 = 6 miles.\n\nTo achieve an average speed of 4 miles per hour for the entire 12-mile trail, the total time required is 12 / 4 = 3 hours. Since she already spent 2 hours, she has 3 - 2 = 1 hour left to cover the remaining 6 "
+        },
+        {
+          "i": 20,
+          "ok": true,
+          "n_tokens": 264,
+          "nfe": 153,
+          "text": "\nThe orange drink is 10 liters and is two-thirds water, so it contains \\(\\frac{2}{3} \\times 10 = \\frac{20}{3}\\) liters of water. After spilling 1 liter of the orange drink, the remaining is \\((10 - 1) = 9\\) liters of orange drink. The water in this remaining 9 orange drink is \\(\\frac{2}{3} \\times \\frac{9}{1} = 6\\) liters, as the proportion remains constant.\n\nThe pineapple drink is 15 liters and is"
+        },
+        {
+          "i": 21,
+          "ok": true,
+          "n_tokens": 81,
+          "nfe": 49,
+          "text": "\nRaymond was born 6 years before Samantha. Since Samantha is currently 31 years old, Raymond is \\(31 + 6 = 37 years.\n\nRaymond had his at age of 23 Therefore,'s son was born \\(37 -23 = 14\\) years ago.\n\n\\boxed{14}"
+        },
+        {
+          "i": 22,
+          "ok": true,
+          "n_tokens": 112,
+          "nfe": 64,
+          "text": "\nBilly has 8 customers.  \n- The first 3 customers each buy 1 DVD, so \\(3 \\times 1 = 3\\) DVDs.  \n- The next 2 customers each buy 2 DVDs, so \\(2 \\times 2 = 4\\) DVDs.  \n- The last 3 customers buy no DVDs, so is3 + 4 = 7\\).  \n\n\\boxed{7}"
+        },
+        {
+          "i": 23,
+          "ok": true,
+          "n_tokens": 90,
+          "nfe": 47,
+          "text": "\nThe candle melts at 2 centimeters per hour. The time duration from 1:00 PM to 5:00 PM is 4 hours.  \nThe × =2/hour × 4 hours =8 cm  \n\nThus, the candle will be 8 centimeters shorter after burning during this period.\n\n\\boxed{8}"
+        },
+        {
+          "i": 24,
+          "ok": true,
+          "n_tokens": 154,
+          "nfe": 85,
+          "text": "\nThe price price is $19.50 after a 25% discount, meaning $19.50 is 75% of the original price.\n\nLet \\(P\\) be the original price. Then:\n\\[\n0.75P = 19.50\n\\]\nSolving for \\(P\\):\n\\[\nP = \\frac{19.50}{0.75} = \\frac{19.50 \\times 100}{75} = \\frac{1950}{75} = \\frac{78}{3} = 26\n\\]\nThus, the original price is $26.\n\n\\boxed{26}"
+        },
+        {
+          "i": 25,
+          "ok": true,
+          "n_tokens": 284,
+          "nfe": 153,
+          "text": "\nMarie ordered a chicken meal for $12, 5 packs of milk at $3 each, 4 apples at $1.50 each, and some boxes of pizza at $8.50 each. The total cost is $50.\n\nFirst, calculate the cost of the known items:  \n- Chicken meal: $12  \n- Milk: $5 \\times 3 = 15  \n- Apples: $4 \\times 1.50 = 6$  \n\nTotal cost of known items: $12 + 15 + 6 = 33$.  \n\nThe remaining amount for the pizza boxes is $50 - 33 = 17$.  \n\nEac"
+        },
+        {
+          "i": 26,
+          "ok": true,
+          "n_tokens": 239,
+          "nfe": 135,
+          "text": "\nMishka bought 3 pairs of shorts at $16.50 each, 3 pairs of pants at $22.50 each, and 3 pairs of shoes at $42 each.\n\n- Cost of shorts: \\(3 \\times 16.50 = 49.50\\)  \n- Cost of pants: \\(3 \\times 22.50 = 67.50\\)  \n- Cost of shoes: \\(3 \\times 42 = 126.00\\)  \n\nTotal cost is calculated:  \n\\(49.50 + 67.50 + 126.00 = 243.00\\)  \n\nAlternatively, the cost per pair of items is \\(16.50 + 22.50 + 42 = 81.00\\). F"
+        },
+        {
+          "i": 27,
+          "ok": false,
+          "n_tokens": 257,
+          "nfe": 138,
+          "text": "\nCynthia eats one serving of ice cream every night for 60 days, so she consumes 60 servings in total.\n\nEach carton contains 15 servings and costs $4.00. The number of cartons needed is calculated as follows:  \n\\[\n\\frac{60 \\text{ servings}}{15 \\text{ servings per carton}} = 4 \\text{ cartons}\n\\]\n\nThe total cost is:  \n\\[\n4 \\text{ cartons} \\times \\$4.00 \\text{ per carton} = \\$16.00\n\\]\n\nAlternatively, "
+        },
+        {
+          "i": 28,
+          "ok": false,
+          "n_tokens": 98,
+          "nfe": 54,
+          "text": "\nHenry's bike trip is 60 miles. His first stop is after 20 miles, so he is at 20 miles. His second stop is 15 miles before the end of the trip, so it is at 60 - 15 = 45 miles. The distance = boxed}"
+        },
+        {
+          "i": 29,
+          "ok": false,
+          "n_tokens": 97,
+          "nfe": 53,
+          "text": "\nThe two pairs of heels cost $33 and $66, respectively, since $33 is twice as much as half of the $66 pair. Their combined cost is $33 + $66 = $99.\n\nThe problem states that the two pairs of heels together cost five dollars less than Therefore\\box"
+        },
+        {
+          "i": 30,
+          "ok": true,
+          "n_tokens": 167,
+          "nfe": 95,
+          "text": "\nThe ratio of Darrell's age to Allen's age is 7:11, and their combined age is 162 years.\n\nLet Darrell's current age be \\(7x\\) and Allen's current age be \\(11x\\). Then:  \n\\[7x + 11x = 18x = 162\\]  \nSolving for \\(x\\):  \n\\[x = \\frac{162}{18} = 9\\]  \nThus, Allen's current age is \\(11x = 11 \\times 9 = 99\\) years.\\boxed{109}"
+        },
+        {
+          "i": 31,
+          "ok": true,
+          "n_tokens": 195,
+          "nfe": 114,
+          "text": "\nThe three guesses are as follows:  \n- The first friend says 80.  \n- The second friend says 20 more than half the first guess: half of 80 is 40, so 40 + 20 = 60.  \n- The third friend says 25% more than the first guess: 25% of 80 is 20, so 80 + 20 = 100.  \n\nThe guesses are 80, 60, and 100.  \nThe average is calculated by summing the guesses and dividing by the number of:  \n(80 + 60 + 100) / 3 = 24 /"
+        },
+        {
+          "i": 32,
+          "ok": true,
+          "n_tokens": 83,
+          "nfe": 49,
+          "text": "\nJohn has 10 dogs, and each dog requires 0.5 hours per day.  \nTotal hours spent per day: \\(10 \\times 0.5 = 5\\) hours.  There are total hours spent per week: \\(5 \\times 7 = 35\\) hours.  \n\n\\boxed{35}"
+        },
+        {
+          "i": 33,
+          "ok": true,
+          "n_tokens": 244,
+          "nfe": 136,
+          "text": "\nGretchen has a total of 110 coins, with 30 more gold coins than silver coins. Let \\(s\\) represent the number of silver coins. Then the number of gold coins is \\(s + 30\\).\n\nThe equation for the total number of coins is:\n\\[\ns + (s + 30) = 110\n\\]\nSimplify the equation:\n\\[\n2s + 30 = 110\n\\]\nSubtract 30 from both sides:\n\\[\n2s = 80\n\\]\nDivide by 2:\n\\[\ns = 40\n\\]\nThus, the number of4 silver is silver coins"
+        },
+        {
+          "i": 34,
+          "ok": true,
+          "n_tokens": 116,
+          "nfe": 68,
+          "text": "\nRaymond has 40 jewels.  \nAaron has 5 more jewels than half of Raymond's jewels.  \nHalf of Raymond's jewels is \\( \\frac{40}{2} = 20 \\).  \nThus, Aaron has \\( 20 + 5 = 25 \\) jewels.  \nSiobhan has 2 fewer jewels than Aaron, so she has \\( 25 - 2 = 23 \\) jewels.  \n\n\\boxed{23}"
+        },
+        {
+          "i": 35,
+          "ok": true,
+          "n_tokens": 117,
+          "nfe": 67,
+          "text": "\nMike scores 4 points in the first 20 minutes.  \nIn the second 20 minutes, he scores 25% more points than in the first 20 minutes.  \n25% of 4 points is \\(0.25 \\times 4 = 1\\) point.  \nThus in the second 20 scores \\(4 + 1 =5\\) points.  \nThe total number of points scored is \\(4 + 5 = 9\\).  \n\n\\boxed{9}"
+        },
+        {
+          "i": 36,
+          "ok": true,
+          "n_tokens": 212,
+          "nfe": 117,
+          "text": "\nTerry eats 2 yogurts per day. Over 30 days, he consumes \\(2 \\times 30 = 60\\) yogurts.\n\nThe sale price is 4 yogurts for $5.00, which means each set costs $5.0. Therefore, the cost per yogurt is \\(5 / 4 = 1.25\\) dollars.\n\nThe total cost is 60 is \\(1.25 = 5/4\\) dollars, so \\(60 \\times (5/4) = (60 \\div 4) = 15 \\times 5 =  75\\) dollars.\n\nAlternatively, number of sets of yogurts is \\(60 / 4 = 15\\), and"
+        },
+        {
+          "i": 37,
+          "ok": false,
+          "n_tokens": 183,
+          "nfe": 102,
+          "text": "\nJohn has 13 lego sets and sells them for $15 each, earning a total of \\(13 \\times 15 = 195\\) dollars. He uses this money to buy 8 video games at $20 each, spending \\(8 \\times 20 = 160\\) dollars. After this purchase, he has a remaining amount of \\(195 - 160 = 35\\) dollars, not $5 as stated in the problem. However, the discrepancy in the remaining amount does not affect the about the number of lego"
+        },
+        {
+          "i": 38,
+          "ok": true,
+          "n_tokens": 157,
+          "nfe": 85,
+          "text": "\nJohn runs a total of 60 miles per week over 3 days per week. On the first day, he runs 3 hours. On the other two days, he runs half as much time as the first day, which is 1.5 hours per day. The total time spent running per week is \\(3 + 1.5 + 1.5 = 6\\) hours.\n\nThe average speed is calculated as total distance divided by total time:  \n\\[\n\\text{Speed} = \\frac{60 \\text{ miles}}{6 \\text{ hours}} = 1"
+        },
+        {
+          "i": 39,
+          "ok": false,
+          "n_tokens": 211,
+          "nfe": 119,
+          "text": "\nDana's skipping speed is given as 3 miles per hour. Since her running speed is 6 miles per hour, which is twice the skipping speed, her walking speed is \\( \\frac{6}{4} \\} = \\frac{3}{2} \\) miles per hour, or 1.5 miles per hour.\n\nShe spends hours walking and two-thirds of the 6 hours running. Thus:  \n- Walking: \\( \\frac{2}{3} \\times 6 = 4 \\) hours  \n- Running: \\( \\frac{1}{3} \\times 6 = 2 \\) hours  "
+        },
+        {
+          "i": 40,
+          "ok": true,
+          "n_tokens": 103,
+          "nfe": 63,
+          "text": "\nSuzy's iPhone is 1 year old.  \nBen's iPhone is two times older than Suzy's iPhone, meaning it is twice as old as Suzy's. Thus, Ben's iPhone is \\(2 \\times 1 = 2\\) years old.  \nBrandon'sPhone is four times as old as Ben's iPhone,\\boxed{8}"
+        },
+        {
+          "i": 41,
+          "ok": true,
+          "n_tokens": 170,
+          "nfe": 95,
+          "text": "\nThe dragon's flames reach a distance of 1000 feet. With the sapphire gemstone, Polly can throw the javelin three times farther than without it. Without the gemstone is 400 feet, so with it, it is \\(3 \\times 400 = 1200\\) feet.\n\nThe distance outside the reach of the dragon's flames that Polly can stand and hit the dragon is the difference between the distance the javelin can reach with the gemstone"
+        },
+        {
+          "i": 42,
+          "ok": true,
+          "n_tokens": 86,
+          "nfe": 49,
+          "text": "\nGrandma Jones baked 5 pies, each cut into 8 pieces, resulting in a total of \\(5 \\times 8 = 40\\) pieces of there were 14 pieces remaining. The number pieces taken by the guests is the total pieces minus the remaining pieces: \\(40 - 14 = 26\\).\n\n\\boxed{26}"
+        },
+        {
+          "i": 43,
+          "ok": true,
+          "n_tokens": 238,
+          "nfe": 135,
+          "text": "\nThe bag of chips has 300 grams and contains 5 servings, so each serving is \\(300 / 5 = 60\\) grams.  \nEach serving has 250 calories, so the calorie content per bag is \\(250 \\times 5 = 1250\\) calories.  \nThe daily calorie target is 2000 calories, and 1800 calories have already been consumed, leaving \\(2000 - 1800 = 200\\) calories to be consumed.  \nThe calorie content per gram is \\(250 / 60 = 25/6\\)"
+        },
+        {
+          "i": 44,
+          "ok": true,
+          "n_tokens": 146,
+          "nfe": 84,
+          "text": "\nCharlie makes and sells 20 candles. For this, he needs 2 pounds of beeswax (since 1 pound makes 10 candles). The cost for 2 pounds of beeswax and wicks is $2 \\times 10.00 = 20.00$ dollars.\n\nHe sells each candle for $2.00, so the revenue from 20 candles is $20 \\times 2.00 = 40.00$ dollars.\n\nNet profit is revenue total $40.0 - 20.00 = 20.00$ dollars.\n\n\\boxed{20}"
+        },
+        {
+          "i": 45,
+          "ok": true,
+          "n_tokens": 172,
+          "nfe": 98,
+          "text": "\nMeredith wrote 5 articles on Monday.  \nOn Tuesday, she wrote \\(\\frac{2}{5}\\) times more articles than on Monday. This means the number of articles on Tuesday is \\(5 + \\frac{2}{5} \\times 5 = 5 + 2 = 7\\) articles.  \nOn Wednesday, she wrote twice the number of articles on Tuesday, which is \\(2 \\times 7 = 14\\) articles.  \n\nThe total number of articles written over the three days is \\(5 + 7 + 14 = 26\\"
+        },
+        {
+          "i": 46,
+          "ok": true,
+          "n_tokens": 201,
+          "nfe": 115,
+          "text": "\nCandice started with 80 post-it notes in her purse. She purchased purchased a package of \\(x\\) post-it notes. Let \\(x\\) be the number of post-it notes in the package.\n\nThe total number available is \\(80 + x\\).\n\nAt her job, she placed one post-it note on each of 220 cups cups, coffee, using 220 post-it notes.\n\nAfter using these notes, she had 23 post-it notes remaining overall.\n\nTherefore, the tot"
+        },
+        {
+          "i": 47,
+          "ok": true,
+          "n_tokens": 179,
+          "nfe": 100,
+          "text": "\nJohn spent $200 on blue ties, each cost $40. Therefore, the number of blue ties is $200 / $40 = 5.\n\nJohn buys twice as many red ties as blue ties, so the number of red ties is 2 * 5 = 10.\n\nRed ties cost 50% more than blue ties. Since blue ties cost $40, red ties cost $40 + (0.5 * $40) = $40 + $20 = $60 each.\n\nThe amount spent on red ties is 10 * $60 = $600.\n\nThe total amount spent on all ties is "
+        },
+        {
+          "i": 48,
+          "ok": true,
+          "n_tokens": 92,
+          "nfe": 51,
+          "text": "\nThe wire is 4 feet long, and each piece is 6 inches long.  \nConvert the wire length to inches: 4 feet × 12 inches/foot = 48 inches.  \nDivide the total length by the length of each piece: 48 inches ÷ 6 inches/piece = 8 pieces.  \n\nThus, Tracy obtained 8 pieces.  \n\n\\boxed{8}"
+        },
+        {
+          "i": 49,
+          "ok": true,
+          "n_tokens": 111,
+          "nfe": 68,
+          "text": "\nThe building has 15 floors, each with 8 units, so the total number of units is \\(15 \\times 8 = 120\\).\n\nGiven that \\(\\frac{3}{4}\\) of the building is occupied, the fraction that is unoccupied is \\(1 -  \\frac{3}{4} = \\frac{1}{4}\\).\n\nTherefore, the number of unoccupied units is \\(\\frac{1}{4} \\times 120 = 30\\).\n\n\\boxed{30}"
+        }
+      ]
+    },
+    "codr_w1_t0.9": {
+      "mode": "wet",
+      "revision_blocks": 1,
+      "remask_policy": "codr",
+      "criterion": "confidence",
+      "denoise_steps": null,
+      "block_length": 32,
+      "threshold": 0.9,
+      "limit": 50,
+      "accuracy": 82.0,
+      "avg_tokens": 166.78,
+      "avg_nfe": 76.58,
+      "tpf": 2.177853225385218,
+      "wall_seconds": 228.48039555549622,
+      "remask_events": 326,
+      "revision_token_changes": 35,
+      "blocks_with_remask": 133,
+      "safety_tail_steps": 0,
+      "hard_cap_hits": 0,
+      "codr_probe_forwards": 364,
+      "codr_drift_remasks": 326,
+      "codr_refill_forwards": 208,
+      "details": [
+        {
+          "i": 0,
+          "ok": true,
+          "n_tokens": 93,
+          "nfe": 49,
+          "text": "\nJanet's ducks lay 16 eggs per day.  \nShe eats 3 eggs for breakfast and 4 eggs for muffins, totaling 7 eggs consumed daily.  \nThe remaining eggs are 16 - 7 = 9 eggs.  \nShe sells each egg for $2, so her daily earnings are 9 * 2 = $18 dollars.  \n\n\\boxed{18}"
+        },
+        {
+          "i": 1,
+          "ok": true,
+          "n_tokens": 77,
+          "nfe": 37,
+          "text": "\nThe robe requires 2 bolts of blue fiber.  \nIt requires half that much white fiber, which is \\( \\frac{1}{2} \\times 2 = 1 \\) bolt.  \nThe total bolts required is the sum of blue and white fiber: \\( 2 + 1 = 3 \\).  \n\n\\boxed{3}"
+        },
+        {
+          "i": 2,
+          "ok": false,
+          "n_tokens": 222,
+          "nfe": 133,
+          "text": "\nJosh bought the house for $80,000 and spent $50,000 on repairs, resulting in a total investment of $130,000. The value of the house increased by 150% from the purchase price, so the increase value is $80,000 × 1.5 = $120,000. The profit is calculated as the selling value minus the total investment: $200,000 - $130,00 = $170,000.\n\nAlternatively, the profit can be calculated as the increase value m"
+        },
+        {
+          "i": 3,
+          "ok": true,
+          "n_tokens": 87,
+          "nfe": 41,
+          "text": "\nJames runs 3 sprints per session, and each sprint is 60 meters. Therefore, the distance he runs per session is \\(3 \\times 60 = 180\\) meters.  \nHe does this 3 times a week, so the total weekly distance is \\(180 \\times 3 = 540\\) meters.  \n\n\\boxed{540}"
+        },
+        {
+          "i": 4,
+          "ok": false,
+          "n_tokens": 227,
+          "nfe": 132,
+          "text": "\nWendi has 20 chickens, and each chicken receives 3 cups of feed per meal.  \n- For the morning meal: \\(20 \\times 3 = 60\\) cups.  \n- For the afternoon meal: \\(20 \\times 3 = 60\\) cups.  \nThe problem states that Wendi gives 15 cups in the morning and 25 cups in the afternoon, but this is inconsistent with the per-chicken requirement of 3 cups per meal. Given the inconsistency, the per-chicken require"
+        },
+        {
+          "i": 5,
+          "ok": true,
+          "n_tokens": 268,
+          "nfe": 119,
+          "text": "\nThe problem states that one glass costs $5, but every second glass costs 60% of that price, which is $3. Since the glasses are purchased in sequence, the first glass costs $5, the second costs $3, the third costs $5, the fourth costs $3, and so on.\n\nFor 16 glasses, there are 8 odd-numbered glasses (1, 3, 5, 7, 9, 11, 13, 15) each costing $5, and 8 even-numbered glasses (2, 4, 6, 8, 10, 12, 14, 16"
+        },
+        {
+          "i": 6,
+          "ok": true,
+          "n_tokens": 108,
+          "nfe": 29,
+          "text": "\nSeattle has 20 sheep.  \nCharleston has 4 times as many sheep as Seattle, so Charleston has \\(4 \\times 20 = 80\\) sheep.  \nToul has twice as many as sheep as Charleston, so Toulouse has \\(2 \\times 80 = 160\\) sheep.  \nTogether, they have \\(20 + 80 + 160 = 260\\) sheep.  \n\n\\boxed{260}"
+        },
+        {
+          "i": 7,
+          "ok": true,
+          "n_tokens": 207,
+          "nfe": 123,
+          "text": "\nCarla is downloading a 200 GB file at a normal speed of 2 GB per minute. The 40% point of the download is 40% of 200 GB, which is 80 GB. The time to reach this point is 80 GB / 2 GB/min = 40 minutes.\n\nAt this point, Windows forces a restart for 20 minutes due to updates. After the restart, Carla must start the entire download from the beginning, which takes 200 GB / 2 GB/min = 100 minutes.\n\nThe t"
+        },
+        {
+          "i": 8,
+          "ok": false,
+          "n_tokens": 259,
+          "nfe": 135,
+          "text": "\nJohn starts from home and drives for 3 hours at 60 mph, covering a distance of \\(3 \\times 60 = 180\\) miles from home.\n\nHe then turns around and attempts to return home in 4 hours. During this return trip:\n- He spends the first 2 hours in standstill traffic, so his position remains 180 miles from home.\n- He drives for 0.5 hours at 30 mph. Since he is moving toward home, he covers \\(0.5 \\times 30 ="
+        },
+        {
+          "i": 9,
+          "ok": true,
+          "n_tokens": 151,
+          "nfe": 48,
+          "text": "\nEliza earns $10 per hour for the first 40 hours. For overtime hours, she earns 1.2 times her regular rate, which is \\(1.2 \\times 10 = 12\\) dollars per hour.\n\nShe worked 45 hours, so the overtime hours are \\(45 - 40 = 5\\) hours.\n\nEarnings for regular hours: \\(40 \\times 10 = 400\\) dollars.  \nEarnings for overtime: \\(5 \\times 12 = 60\\) dollars.  Total earnings: \\(400 + 60 = 460\\) dollars.\n\n\\boxed{46"
+        },
+        {
+          "i": 10,
+          "ok": true,
+          "n_tokens": 160,
+          "nfe": 57,
+          "text": "\nThe program had 60 downloads in the first month.\n\nIn the second month, the number of downloads was three times the first month's downloads:  \n\\(3 \\times 60 = 180\\) downloads.\n\nIn the third month, the number of downloads was reduced by 30% from the second month's downloads.  \n30% of 180 is \\(0.3 \\times 180 = 54\\), so the third month downloads are \\(180 - 54 = 126\\) downloads.\n\nThe total downloads "
+        },
+        {
+          "i": 11,
+          "ok": true,
+          "n_tokens": 151,
+          "nfe": 45,
+          "text": "\nThe total cost is calculated by finding the cost for each type of pastry separately and summing them up.\n\n- Donuts: 3 dozen at $68 per dozen = \\(3 \\times 68 = 204\\) dollars  \n- Mini cupcakes: 2 dozen at $80 per dozen = \\(2 \\times 80 = 160\\) dollars  \n- Mini cheesecakes: 6 dozen at $55 per dozen = \\(6 \\times 55 = 330\\) dollars  \n\nTotal cost: \\(204 + 160 + 330 = 694\\) dollars  \n\n\\boxed{694}"
+        },
+        {
+          "i": 12,
+          "ok": false,
+          "n_tokens": 408,
+          "nfe": 243,
+          "text": "\nCarlos incurs a one-time cost of $90 to plant the tree. Each year, he grows 7 lemons and sells them for $1.5 each, generating $10.50 in revenue per year. However, it costs $3 per year to water and feed the tree, resulting in a net annual profit of $10.50 - $3 = $7.50 per year.\n\nThe net profit after \\(t\\) years is given by the equation:\n\\[\nP(t) = 7.50t - 90\n\\]\nwhere \\(P(t)\\) is the net profit afte"
+        },
+        {
+          "i": 13,
+          "ok": false,
+          "n_tokens": 141,
+          "nfe": 71,
+          "text": "\nMelanie started with 15 vacuum cleaners.\n\n- She sold a third at the green house: \\( \\frac{1}{3} \\times 15 = 5 \\), leaving \\( 15 - 5 = 10 \\).\n- She sold 2 more to the red house: \\( 10 - 2 = 8 \\) left.\n- She sold half of the remaining at the orange house: \\( \\frac{1}{2} \\times 8 = 4 \\), leaving \\( 8 - 4 = 5 \\), which matches the given information.\n\nThus, the solution is consistent.\n\n\\boxed{15}"
+        },
+        {
+          "i": 14,
+          "ok": true,
+          "n_tokens": 147,
+          "nfe": 56,
+          "text": "\nThe dance class has 20 students.\n\n- 20% enrolled in contemporary dance: \\(0.20 \\times 20 = 4\\) students.\n- The remaining students: \\(20 - 4 = 16\\).\n- 25% of the remaining enrolled in jazz dance: \\(0.25 \\times 16 = 4\\) students.\n- The rest enrolled in hip-hop dance: \\(16 - 4 = 12\\) students.\n\nThe percentage of the entire class that enrolled in hip-hop dance is \\(\\frac{12}{20} \\times 100\\% = 60\\%\\)"
+        },
+        {
+          "i": 15,
+          "ok": false,
+          "n_tokens": 300,
+          "nfe": 151,
+          "text": "\nThe merchant can choose to purchase either jewelry worth $5,000 or electronic gadgets worth $8,000. The jewelry market is expected to increase by 2.5%, and the electronic gadgets market is expected to increase by 1.2% within the month. The profit is calculated as the increase in value minus the purchase price.\n\nFor jewelry:  \n- Purchase price: $5,000  \n- Increase: $5,000 \\times 0.025 = $125  \n- P"
+        },
+        {
+          "i": 16,
+          "ok": true,
+          "n_tokens": 104,
+          "nfe": 64,
+          "text": "\nThe two trains travel 80 miles westward on the first day and 150 miles northward on the second day. Since both trains cover the same distances in the same manner, the total distance covered by each train is the sum of the distances for each day.\n\nTotal distance = 80 miles + 150 miles = 230 miles.\n\nThus, the distance covered by each train in the two days is 230 miles.\n\n\\boxed{230}"
+        },
+        {
+          "i": 17,
+          "ok": true,
+          "n_tokens": 341,
+          "nfe": 127,
+          "text": "\nJill earns $20 per hour as teaching and $30 per hour as a cheerleading coach. She works 35 hours per week as a teacher and 15 hours per week as a coach for 50 weeks a year.\n\nFirst, calculate the weekly earnings from teaching:  \n35 hours/week × $20/hour = $700/week.\n\nNext, calculate the weekly earnings from coaching:  \n15 hours/week × $30/hour = $450/week.\n\nThe total weekly earnings are:  \n$700/we"
+        },
+        {
+          "i": 18,
+          "ok": true,
+          "n_tokens": 121,
+          "nfe": 52,
+          "text": "\nClaire makes a 3-egg omelet every morning, so she consumes 3 eggs per day.  \nIn 4 weeks, there are \\(4 \\times 7 = 28\\) days.  \nThe total number of eggs consumed is \\(3 \\times 28 = 84\\) eggs.  \nSince 1 dozen equals 12 eggs, the number of dozens is \\(84 \\div 12 = 7\\).  \n\nThus, Claire will eat 7 dozens of eggs in 4 weeks.\n\n\\boxed{7}"
+        },
+        {
+          "i": 19,
+          "ok": true,
+          "n_tokens": 118,
+          "nfe": 68,
+          "text": "\nMarissa has hiked 6 miles in 2 hours, with an average speed of 3 mph for the first 6 miles. To achieve an overall average speed of 4 mph for the 12-mile trail, the total time required is \\( \\frac{12}{4} = 3 \\) hours. Therefore, she needs 1 more hour to cover the remaining 6 miles. The required speed is \\( \\frac{6 \\text{ miles}}{1 \\text{ hour}} = 6 \\) mph.\n\n\\boxed{6}"
+        },
+        {
+          "i": 20,
+          "ok": true,
+          "n_tokens": 222,
+          "nfe": 91,
+          "text": "\nThe orange drink is 10 liters, with two-thirds water, so the amount of water is \\( \\frac{2}{3} \\times 10 = \\frac{20}{3} \\) liters.\n\nThe pineapple drink is 15 liters, with three-fifths water, so the amount of water is \\( \\frac{3}{5} \\times 15 = 9 \\) liters.\n\nAfter spilling 1 liter of the orange drink, the remaining orange drink is \\(10 - 1 = 9\\) liters. The water in the remaining orange drink is \\"
+        },
+        {
+          "i": 21,
+          "ok": false,
+          "n_tokens": 78,
+          "nfe": 36,
+          "text": "\nRaymond was born 6 years before Samantha. Since Samantha is currently 31 years old, Raymond is \\(31 - 6 = 25\\) years old now.\n\nRaymond had his son at the age of 23. Therefore, the son was born \\(25 - 23 = 2\\) years ago.\n\n\\boxed{2}"
+        },
+        {
+          "i": 22,
+          "ok": true,
+          "n_tokens": 120,
+          "nfe": 37,
+          "text": "\nBilly has 8 customers.  \n- The first 3 customers each buy 1 DVD, so they buy \\(3 \\times 1 = 3\\) DVDs.  \n- The next 2 customers each buy 2 DVDs, so they buy \\(2 \\times 2 = 4\\) DVDs.  \n- The last 3 customers buy no DVDs, so they contribute 0 DVDs.  \n\nThe total number of DVDs sold is \\(3 + 4 + 0 = 7\\).  \n\n\\boxed{7}"
+        },
+        {
+          "i": 23,
+          "ok": true,
+          "n_tokens": 85,
+          "nfe": 43,
+          "text": "\nThe candle melts at 2 centimeters per hour. The time duration from 1:00 PM to 5:00 PM is 4 hours.  \nThe total melting is calculated as:  \n2 cm/hour × 4 hours = 8 cm.  \n\nTherefore, the candle will be 8 centimeters shorter after burning during this period.\n\n\\boxed{8}"
+        },
+        {
+          "i": 24,
+          "ok": true,
+          "n_tokens": 141,
+          "nfe": 66,
+          "text": "\nThe customer paid $19.50 after a 25% discount, which means 75% of the original price was paid.\n\nLet \\(P\\) be the original price. Then:\n\\[\n0.75P = 19.50\n\\]\n\nSolving for \\(P\\):\n\\[\nP = \\frac{19.50}{0.75} = \\frac{19.50 \\times 100}{75} = \\frac{1950}{75} = 26\n\\]\n\nThus, the original price of the book was $26.\n\n\\boxed{26}"
+        },
+        {
+          "i": 25,
+          "ok": true,
+          "n_tokens": 214,
+          "nfe": 94,
+          "text": "\nMarie ordered one chicken meal for $12, 5 packs of milk at $3 each, 4 apples at $1.50 each, and some boxes of pizza at $8.50 each, paying a total of $50.\n\nFirst, calculate the cost of the known items:  \n- Chicken meal: $12  \n- Milk: \\(5 \\times 3 = 15\\)  \n- Apples: \\(4 \\times 1.50 = 6\\)  \n\nTotal for chicken, milk, and apples: \\(12 + 15 + 6 = 33\\).  \n\nThe total payment is $50, so the cost of the pi"
+        },
+        {
+          "i": 26,
+          "ok": true,
+          "n_tokens": 202,
+          "nfe": 75,
+          "text": "\nMishka bought 3 pairs of shorts, 3 pairs of pants, and 3 pairs of shoes.  \n- Cost of shorts: \\(3 \\times 16.50 = 49.50\\)  \n- Cost of pants: \\(3 \\times 22.50 = 67.50\\)  \n- Cost of shoes: \\(3 \\times 42 = 126.00\\)  \nTotal cost: \\(49.50 + 67.50 + 126.00 = 243.00\\)  \n\nAlternatively, the cost per pair is \\(16.50 + 22.50 + 42 = 81.00\\), and for 3 pairs: \\(3 \\times 81.00 = 243.00\\).  \n\n\\boxed{243}"
+        },
+        {
+          "i": 27,
+          "ok": true,
+          "n_tokens": 181,
+          "nfe": 87,
+          "text": "\nCynthia eats one serving of ice cream every night for 60 days, so she consumes 60 servings in total.\n\nEach carton contains 15 servings and costs $4.00. The number of cartons needed is \\(60 \\div 15 = 4\\).\n\nThe total cost is \\(4 \\times 4.00 = 16.00\\).\n\nAlternatively, the cost per serving is \\(4.00 \\div 15 = \\frac{4}{15}\\) dollars. For 60 servings, the cost is \\(60 \\times \\frac{4}{15} = \\frac{240}{1"
+        },
+        {
+          "i": 28,
+          "ok": true,
+          "n_tokens": 128,
+          "nfe": 56,
+          "text": "\nHenry's trip is 60 miles long. His first stop is after 20 miles, meaning he has traveled 20 miles to reach this point. His second stop is 15 miles before the end of the trip, so it is at \\(60 - 15 = 45\\) miles from the start.\n\nThe distance between the first stop (20 miles) and the second stop (45 miles) is \\(45 - 20 = 25\\) miles.\n\nThus, Henry traveled 25 miles between his first and second stops.\n"
+        },
+        {
+          "i": 29,
+          "ok": true,
+          "n_tokens": 108,
+          "nfe": 59,
+          "text": "\nThe two pairs of high heels cost $33 and $66, respectively, since one pair costs $33 and the other costs twice as much. The total cost of the two heels is $33 + $66 = $99.\n\nThe problem states that the two pairs of heels together cost five dollars less than the boots. Therefore, the cost of the boots is $99 + $5 = $104.\n\nThe boots cost $104.\n\n\\boxed{104}"
+        },
+        {
+          "i": 30,
+          "ok": true,
+          "n_tokens": 173,
+          "nfe": 58,
+          "text": "\nThe ages of Darrell and Allen are in the ratio of 7:11, and their total age is 162.\n\nLet Darrell's age be \\(7x\\) and Allen's age be \\(11x\\), where \\(x\\) is a common multiplier.\n\nThe sum of their ages is:\n\\[\n7x + 11x = 18x = 162\n\\]\n\nSolving for \\(x\\):\n\\[\nx = \\frac{162}{18} = 9\n\\]\n\nAllen's current age is:\n\\[\n11x = 11 \\times 9 = 99\n\\]\n\nAllen's age 10 years from now will be:\n\\[\n99 + 10 = 109\n\\]\n\n\\box"
+        },
+        {
+          "i": 31,
+          "ok": true,
+          "n_tokens": 198,
+          "nfe": 80,
+          "text": "\nThe three guesses are as follows:  \n- The first friend says 80.  \n- The second friend says 20 more than half the first guess: half of 80 is 40, so 40 + 20 = 60.  \n- The third friend says 25% more than the first guess: 25% of 80 is 20, so 80 + 20 = 100.  \n\nThe guesses are 80, 60, and 100.  \nThe average is calculated as the sum of the guesses divided by the number of guesses:  \n(80 + 60 + 100) / 3 "
+        },
+        {
+          "i": 32,
+          "ok": true,
+          "n_tokens": 83,
+          "nfe": 40,
+          "text": "\nJohn has 10 dogs, and each dog requires 0.5 hours per day for care.  \nThe total daily care time is \\(10 \\times 0.5 = 5\\) hours.  \nAssuming a 7-day week, the total weekly care time is \\(5 \\times 7 = 35\\) hours.  \n\n\\boxed{35}"
+        },
+        {
+          "i": 33,
+          "ok": true,
+          "n_tokens": 216,
+          "nfe": 78,
+          "text": "\nGretchen has a total of 110 coins, and there are 30 more gold coins than silver coins.\n\nLet \\(s\\) represent the number of silver coins. Then the number of gold coins is \\(s + 30\\).\n\nThe total number of coins is given by:\n\\[\ns + (s + 30) = 110\n\\]\nSimplify the equation:\n\\[\n2s + 30 = 110\n\\]\nSubtract 30 from both sides:\n\\[\n2s = 80\n\\]\nDivide both sides by 2:\n\\[\ns = 40\n\\]\nThus, the number of gold coins"
+        },
+        {
+          "i": 34,
+          "ok": true,
+          "n_tokens": 116,
+          "nfe": 33,
+          "text": "\nRaymond has 40 jewels.  \nAaron has 5 more jewels than half of Raymond jewels:  \nHalf of Raymond's jewels is \\( \\frac{40}{2} = 20 \\).  \nAaron has \\( 20 + 5 = 25 \\) jewels.  \nSiobhan has 2 fewer jewels than Aaron:  \nSiobhan has \\( 25 - 2 = 23 \\) jewels.  \n\n\\boxed{23}"
+        },
+        {
+          "i": 35,
+          "ok": true,
+          "n_tokens": 109,
+          "nfe": 40,
+          "text": "\nMike scores 4 points in the first 20 minutes.  \nIn the second 20 minutes, he scores 25% more points than in the first 20 minutes.  \n25% of 4 is \\(0.25 \\times 4 = 1\\), so he scores \\(4 + 1 = 5\\) points in the second 20 minutes.  \nThe total points scored is \\(4 + 5 = 9\\).  \n\n\\boxed{9}"
+        },
+        {
+          "i": 36,
+          "ok": true,
+          "n_tokens": 197,
+          "nfe": 82,
+          "text": "\nTerry eats 2 yogurts per day. Over 30 days, he consumes \\(2 \\times 30 = 60\\) yogurts.\n\nThe sale price is 4 yogurts for $5.00. To find the cost for 60 yogurts, determine how many sets of 4 yogurts are in 60: \\(60 \\div 4 = 15\\).\n\nEach set costs $5.00, so the total cost is \\(15 \\times 5 = 75\\) dollars.\n\nAlternatively, the cost per yogurt is \\(5 / 4 = 1.25\\) dollars. For 60 yogurts, the cost is \\(60 "
+        },
+        {
+          "i": 37,
+          "ok": false,
+          "n_tokens": 126,
+          "nfe": 71,
+          "text": "\nJohn has 13 lego sets and sells them for $15 each, so he raises \\(13 \\times 15 = 195\\) dollars.\n\nHe buys 8 video games for $20 each, which costs \\(8 \\times 20 = 160\\) dollars, and has $5 left. This is consistent with \\(195 - 160 = 5\\).\n\nThe problem asks how many lego sets he still has. Since he sold all 13 lego sets, he has 0 left.\n\n\\boxed{0}"
+        },
+        {
+          "i": 38,
+          "ok": true,
+          "n_tokens": 153,
+          "nfe": 72,
+          "text": "\nJohn runs a total of 60 miles per week over 3 days. On the first day, he runs for 3 hours. On each of the other two days, he runs for half the time of the first day, which is 1.5 hours per day. The total running time per week is \\(3 + 1.5 + 1.5 = 6\\) hours.\n\nTo find his average speed, divide the total distance by the total time:  \n\\[\n\\frac{60 \\text{ miles}}{6 \\text{ hours}} = 10 \\text{ miles per "
+        },
+        {
+          "i": 39,
+          "ok": true,
+          "n_tokens": 224,
+          "nfe": 93,
+          "text": "\nDana's skipping speed is given as 3 miles per hour, which is half her running speed. Therefore, her running speed is \\(2 \\times 3 = 6\\) miles per hour.\n\nHer running speed is four times her walking speed, so her walking speed is \\(6 / 4 = 1.5\\) miles per hour.\n\nShe spends one-third of the time running and two-thirds of walking over a total of six hours.\n\n- Time running: \\((1/3) \\times 6 = 2\\) hour"
+        },
+        {
+          "i": 40,
+          "ok": true,
+          "n_tokens": 94,
+          "nfe": 32,
+          "text": "\nSuzy's iPhone is 1 year old.  \nBen's iPhone is two times older than Suzy's iPhone, so Ben's iPhone is \\(2 \\times 1 = 2\\) years old.  \nBrandon's iPhone is four times as old as Ben's iPhone, so Brandon's iPhone is \\(4 \\times 2 = 8\\) years old.  \n\n\\boxed{8}"
+        },
+        {
+          "i": 41,
+          "ok": true,
+          "n_tokens": 184,
+          "nfe": 108,
+          "text": "\nThe dragon's flames reach up to 1000 feet. Without the sapphire gemstone, Polly can throw the javelin 400 feet. With the gemstone, she can throw it three times farther, which is \\(3 \\times 400 = 1200\\) feet.\n\nSince 1200 feet is greater than 1000 feet, Polly can hit the dragon when holding the gemstone by standing at a distance of 1200 feet. The distance outside the dragon's reach is the differenc"
+        },
+        {
+          "i": 42,
+          "ok": true,
+          "n_tokens": 86,
+          "nfe": 35,
+          "text": "\nGrandma Jones baked 5 pies, each cut into 8 pieces, resulting in a total of \\(5 \\times 8 = 40\\) pieces of pie. After the guests ate some pieces, 14 pieces remained. The number of pieces taken by the guests is the total pieces minus the remaining pieces: \\(40 - 14 = 26\\).\n\n\\boxed{26}"
+        },
+        {
+          "i": 43,
+          "ok": true,
+          "n_tokens": 210,
+          "nfe": 107,
+          "text": "\nThe bag of chips has 250 calories per serving and a 300g bag contains 5 servings, so the total calories in the bag are \\(250 \\times 5 = 1250\\) calories.\n\nThe daily calorie target is 2000 calories, and 1800 calories have already been consumed, leaving \\(2000 - 1800 = 200\\) calories available for consumption.\n\nSince each serving has 250 calories, the number of servings that can be consumed with 200"
+        },
+        {
+          "i": 44,
+          "ok": true,
+          "n_tokens": 162,
+          "nfe": 87,
+          "text": "\nCharlie makes and sells 20 candles. Each candle requires 0.1 pounds of beeswax (since 10 candles are made per pound). Therefore, 20 candles require 2 pounds of beeswax.\n\nThe cost for 1 pound of beeswax and the wicks is $10.00. Thus, the cost for 2 pounds of beeswax and wicks is \\(2 \\times 10 = 20\\) dollars.\n\nThe revenue from selling 20 candles at $2.00 each is \\(20 \\times 2 = 40\\) dollars.\n\nThe n"
+        },
+        {
+          "i": 45,
+          "ok": true,
+          "n_tokens": 169,
+          "nfe": 58,
+          "text": "\nMeredith wrote 5 articles on Monday.  \nOn Tuesday, she wrote \\(\\frac{2}{5}\\) times more articles than on Monday, meaning the number of articles on Tuesday is \\(5 + \\frac{2}{5} \\times 5 = 5 + 2 = 7\\) articles.  \nOn Wednesday, she wrote twice the number of articles on Tuesday, which is \\(2 \\times 7 = 14\\) articles.  \n\nThe total number of articles written over the three days is \\(5 + 7 + 14 = 26\\). "
+        },
+        {
+          "i": 46,
+          "ok": false,
+          "n_tokens": 175,
+          "nfe": 131,
+          "text": "\nCandice started with 80 post-it notes and ended with 23, so the total number of post-it notes she had after the purchase is \\(80 + 23 = 103\\).\n\nShe placed one single post-it note on each of 220 cups of coffee, using 220 notes.\n\nTherefore, the number of post-it notes in the package she purchased is \\(103 - 220 = -117\\).\n\nA negative result indicates that she did not need to purchase any post-it not"
+        },
+        {
+          "i": 47,
+          "ok": true,
+          "n_tokens": 170,
+          "nfe": 73,
+          "text": "\nJohn spent $200 on blue ties, which cost $40 each, so the number of blue ties is $200 / 40 = 5$.\n\nHe buys twice as many red ties as blue ties, so the number of red ties is $2 \\times 5 = 10$.\n\nThe red ties cost 50% more than the blue ties, so each red tie costs $40 \\times 1.5 = 60$ dollars.\n\nThe amount spent on red ties is $10 \\times 60 = 600$ dollars.\n\nThe total amount spent on ties is the sum of"
+        },
+        {
+          "i": 48,
+          "ok": true,
+          "n_tokens": 159,
+          "nfe": 73,
+          "text": "\nThe wire is 4 feet long, and each piece is 6 inches long.  \nFirst, convert the wire length to inches:  \n4 feet × 12 inches/foot = 48 inches.  \nNow, divide the total length by the length of each piece:  \n48 inches ÷ 6 inches/piece = 8 pieces.  \n\nAlternatively, convert the piece length to feet:  \n6 inches ÷ 12 inches/foot = 0.5 feet.  \nThen divide the wire length by the piece length:  \n4 feet ÷ 0.5"
+        },
+        {
+          "i": 49,
+          "ok": true,
+          "n_tokens": 166,
+          "nfe": 54,
+          "text": "\nThe building has 15 floors, each with 8 units, so the total number of units is \\(15 \\times 8 = 120\\).\n\nGiven that \\(\\frac{3}{4}\\) of the building is occupied, the number of occupied units is \\(\\frac{3}{4} \\times 120 = 90\\).\n\nThe number of unoccupied units is the total minus the occupied units: \\(120 - 90 = 30\\).\n\nAlternatively, since \\(\\frac{3}{4}\\) are occupied, \\(\\frac{1}{4}\\) are unoccupied, a"
+        }
+      ]
+    },
+    "remedi_w2_s16_conf": {
+      "mode": "wet",
+      "revision_blocks": 2,
+      "remask_policy": "reme_di",
+      "criterion": "confidence",
+      "denoise_steps": 16,
+      "block_length": 32,
+      "threshold": 0.9,
+      "limit": 50,
+      "accuracy": 58.0,
+      "avg_tokens": 176.4,
+      "avg_nfe": 99.8,
+      "tpf": 1.7675350701402806,
+      "wall_seconds": 348.1811378002167,
+      "remask_events": 81616,
+      "revision_token_changes": 7643,
+      "blocks_with_remask": 299,
+      "safety_tail_steps": 0,
+      "hard_cap_hits": 0,
+      "codr_probe_forwards": 0,
+      "codr_drift_remasks": 0,
+      "codr_refill_forwards": 0,
+      "details": [
+        {
+          "i": 0,
+          "ok": false,
+          "n_tokens": 512,
+          "nfe": 272,
+          "text": "\nJanet’s ducks lay 16 eggs per day.  \nShe eats three eggs for breakfast and bakes muffins for her friends, using four eggs. This eggs four eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs eggs e"
+        },
+        {
+          "i": 1,
+          "ok": false,
+          "n_tokens": 69,
+          "nfe": 48,
+          "text": "\nThe requires  of blue fiber and half that much white fiber. Half of 2 bolts \\( \\div 2 \\) bolt. total bolts required is \\( + 1.5 = \\) bolts.\n\n\\boxed{3.5}"
+        },
+        {
+          "i": 2,
+          "ok": false,
+          "n_tokens": 190,
+          "nfe": 102,
+          "text": "\nJosh bought the house for $80,000 and spent $50,000 on repairs, resulting in a total investment of $130,000. The value of the house increased by 150% from the original purchase price $80,000. An increase of 150% of $80,000 is $1.5 \\times 80,000 = $120,000, so the selling price is $80,000 + $120,000 = $200,000.\n\nThe profit is calculated by subtracting the total cost and investment from the selling"
+        },
+        {
+          "i": 3,
+          "ok": true,
+          "n_tokens": 88,
+          "nfe": 50,
+          "text": "\n 3 sprint per session, with each sprint 60 meters., the total distance run per session is \\(3 \\times 60 = 10\\) meters.  \nSince he does this 3 times a week, the total distance run in a week is \\(180 \\times 3 = 540\\) meters.\n\n\\boxed{540}"
+        },
+        {
+          "i": 4,
+          "ok": true,
+          "n_tokens": 121,
+          "nfe": 65,
+          "text": "\nWendi has 20 chickens, and each chicken receives 3 cups of feed per day, so the total feed required per day \\(20 \\ 3 0\\).\n\nThe morning meal 5 the afternoon provides 25 so the total feed for first meals is \\(15 + 25 40 cups feed needed for the final meal is the difference minus the total feed: \\(60 - 40 = 20\\) cups.\n\n\\boxed{20}"
+        },
+        {
+          "i": 5,
+          "ok": true,
+          "n_tokens": 208,
+          "nfe": 119,
+          "text": "\nKylar wants to buy 16 glasses. With the pricing, every every glass normally costs $5, but every second glass (starting from the first second glass) costs 60% of $5, which is $3.\n\nFor 16 glasses, there are 8 odd positions (1, 3, 5, 7, 9, 11, 13, 15) and 8 even positions (2, 4, 6, 8, 10, 12, 14, 16).  \n- The 8 are-position glasses cost $5 each, so \\(8 \\times 5 = 40\\) dollars.  \n- The 8 even-positio"
+        },
+        {
+          "i": 6,
+          "ok": true,
+          "n_tokens": 109,
+          "nfe": 66,
+          "text": "\nSeattle has 20 sheep.  \nCharleston has 4 times as many sheep as Seattle, so Charleston has \\(4 \\times 20 = 80\\) sheep.  \noul has twice as so \\(2 \\times 80 = 160\\)  The total number of sheep is together: \\(160 + 80 + 20 = 260\\).  \n\n\\boxed{260}"
+        },
+        {
+          "i": 7,
+          "ok": false,
+          "n_tokens": 181,
+          "nfe": 100,
+          "text": "\nCarla is downloading a 200 GB file at a normal speed of 2 GB/min, which would normally take to take 100 minutes. However, at 40% of the way (80 GB downloaded), Windows forces a restart for 20 minutes, and she has to restart the download from the beginning.\n\nThe total time includes downloading 80 GB at 20 GB/min takes 40 minutes, the 20-minute restart, and the 200 at 20 GB takes 100 minutes. The t"
+        },
+        {
+          "i": 8,
+          "ok": false,
+          "n_tokens": 241,
+          "nfe": 135,
+          "text": "\nJohn drives 3 hours away at 60 mph, so he is \\(3 \\times 60 = 180\\) miles from home.\n\n He then turns around and attempts to return home in 4 hours. During this 4-hour 2 hours of standstill traffic traffic, he remains at 180 miles from home.\n\n The next 0.5 hours, he drives at 30 mph, so he covers \\(0.5 \\times 30 = 15\\) miles toward home, reducing his distance to \\(18 - 15 = 155\\) miles from home.\n\n"
+        },
+        {
+          "i": 9,
+          "ok": false,
+          "n_tokens": 143,
+          "nfe": 85,
+          "text": "\nEliza earns $10 per hour for the first 40 hours, so for regular pay \\(40 \\times 10 = 400\\) dollars.  \nShe worked 45 hours, so \\(4.5 - 40 = 5\\) hours of overtime overtime.  \nOvertime pay is \\(1.2 \\times 10 = 12\\) dollars per hour.   for overtime pay is \\(5 \\times 12 = 160\\) dollars.  \nTotal earnings are \\(400 + 120 = 560\\) dollars.  \n\n\\boxed{560}"
+        },
+        {
+          "i": 10,
+          "ok": true,
+          "n_tokens": 157,
+          "nfe": 85,
+          "text": "\nThe program had 60 downloads in the first month.  \nIn the second month, the number of downloads was three times the first month: \\(3 \\times 60 = 180\\) downloads.  \nThe third month had the number of downloads reduced by 30% from the second month. 30% reduction of 180 is calculated as \\(1800 \\times (1 - 0.30) = 180 \\times 0.700 = 126\\) downloads.  \nThe total downloads over all three months is \\(60 "
+        },
+        {
+          "i": 11,
+          "ok": false,
+          "n_tokens": 162,
+          "nfe": 87,
+          "text": "\nThe total cost is calculated by calculating the cost for each type of pastry separately and summing them up.  \n\n- 3 dozen donuts at $68 per dozen: \\(3 \\times 68 = 204\\) dollars  \n- 2 dozen mini cupcakes at $80 per dozen: \\(2 \\times 80 = 160\\) dollars  \n- 6 dozen mini cheesecakes at $555}"
+        },
+        {
+          "i": 12,
+          "ok": false,
+          "n_tokens": 333,
+          "nfe": 187,
+          "text": "\nThe initial cost to plant the tree is $90.  \nEach subsequent year, Carlos sells 7 lemons ($1.5 each lemon), earninging $1.5 \\times 7 = 10.5$ per year.  \nThe annual cost to maintain (water and feed) is $3, so the annual net profit after maintenance is $10.5 - 3 = 7.5$.  \n\nThe net profit after $t$ years is given by:  \n\\[P_t = 7.5t - 90\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]\\]  \nSet $P_t \\geq 0$:  \n\\[7.5"
+        },
+        {
+          "i": 13,
+          "ok": true,
+          "n_tokens": 434,
+          "nfe": 238,
+          "text": "\nMelanie started with \\(x\\) vacuum cleaners.\n\nShe sold a third of her vacuum at the green house, which is \\(\\frac{1}{3}x\\).  \nThe amount left after the green house is  \n\\[\nx - \\frac{1}{3}x = \\frac{2}{3}x.\n\\]\n\nShe sold 2 more to the red house, so the amount left after the red house is  \n\\[\n\\frac{2}{3}x - 2.\n\\]\n\nShe sold half of the remaining amount at the orange house, which is \\(\\frac{1}{2} \\left("
+        },
+        {
+          "i": 14,
+          "ok": true,
+          "n_tokens": 157,
+          "nfe": 84,
+          "text": "\nThe dance class has 20 students.\n\n- 20% enrolled in contemporary dance: \\(0.20 \\times 20 = 4\\) students.\n- Remaining students remaining: \\(20 - 4 = 16\\) students.\n- 25% of the remaining students enrolled in jazz dance \\(0.25 \\times 1 = 4\\) students- enrolled in hip-hop: \\(16 - 4 = 12\\) students- Percentage of hip-hop: \\(\\frac12}{20} \\times 100\\% = \\frac{12}{20} \\times 100\\% = 60\\%\\).\n\n\\boxed{60}"
+        },
+        {
+          "i": 15,
+          "ok": true,
+          "n_tokens": 261,
+          "nfe": 151,
+          "text": "\nThe merchant can choose between jewelry worth $5,000 or electronic gadgets worth $8,000. The financial advisor predicts that the jewelry market will rise by 2.5% and the electronic gadgets will rise by by 1.2% within the month. Profit is calculated as the difference in value of the purchase price and the selling price.\n\n- For jewelry:  \n- Purchase price: $5,000$  \n- Selling price: $5,000 \\times 1"
+        },
+        {
+          "i": 16,
+          "ok": true,
+          "n_tokens": 101,
+          "nfe": 63,
+          "text": "\nThe trains leave San Rafael at the same time and each travels 80 miles westward on the first day. The next day, they day, after traveling80 miles,, each travel 11 miles north Therefore, the total  10 230 milesSince both travel at distance, 230ed230}"
+        },
+        {
+          "i": 17,
+          "ok": false,
+          "n_tokens": 159,
+          "nfe": 82,
+          "text": "\nJill's annual salary is calculated by summing her earnings from teaching, teacher coaching, and coach, then multiplying by the total number of weeks work. \n\n- Teaching earnings: 35 hours/week × $20/h = $1500/week  \n- Coach coaching earnings: 15 $30 = $450/week\n- Total: $1500 + $450 = $190/- Total annual: $1950 × 50 $95,000  \n\nThus, her annual salary is the95 the00\\boxed{955000}"
+        },
+        {
+          "i": 18,
+          "ok": false,
+          "n_tokens": 166,
+          "nfe": 100,
+          "text": "\nClaire makes a 3 omelet every morning, using 3 eggs per ome.  \n- In 3 eggs day, she =  \\(3 \\times 36 = 9\\) eggs per day.  \n- In 1 week, which has 7 days, she = \\(9 \\times 7 = 63\\) eggs.  \n- In 4 weeks, she = \\(63 \\times 4 = 252\\).  - 1 dozen = 12 eggs the of = 252 eggs =  2 \\div 12 = 21 dozens.  \n\n, will eat 21 dozens of eggs 4  \\boxed{21}"
+        },
+        {
+          "i": 19,
+          "ok": true,
+          "n_tokens": 175,
+          "nfe": 101,
+          "text": "\nMarissa has walked:\n- 4 miles in 1 hour.\n- 2 miles in 1 hour.\n- Total distance: 4 + 2 = 6 miles.\n- Total time: 1 + 1 = 2 hours.\n- Total distance: 12 - 6 miles = 6 miles remaining.\n\nTo achieve an average speed of 4 miles per hour for the 12-mile trail:\n- Total time required: 12 miles / 4 miles/h = 3 hours.\n- Time spent: 2 hours- Time: 3 - 2 =  1 hour.\n- Required speed speed = distance / time = 6 m"
+        },
+        {
+          "i": 20,
+          "ok": false,
+          "n_tokens": 342,
+          "nfe": 187,
+          "text": "\nThe orange drink is 10 liters and is two-thirds water by, so the amount of water is \\(\\frac{2}{3} \\times 10 = \\frac{20}{3}\\) liters.\n\nThe pineapple drink is 15 liters and is three-fifths water by, so the amount of water is \\(\\frac{3}{5} \\times 15 = 9\\) liters.\n\nAfter spilling one liter of the orange drink, the remaining orange drink is \\(10 - 1 = 9\\) liters. Since the composition of the same rema"
+        },
+        {
+          "i": 21,
+          "ok": true,
+          "n_tokens": 90,
+          "nfe": 50,
+          "text": "\nRaymond was born 6 years before. Since Samantha is currently 31 years, is 31 + 6 = 37 years old.\n\nRay had a son at age of 23, so the son was born when 37 - 23 = 14 years ago.\n\nThus, Raymond's son was born 14 years ago.\n\n\\boxed{14}"
+        },
+        {
+          "i": 22,
+          "ok": true,
+          "n_tokens": 112,
+          "nfe": 67,
+          "text": "\nBilly has 8 customers.  \n- The first 3 customers each buy 1 DVD each, resulting in \\(3 \\times 1 = 3\\) DVDs  \n The next 2 customers each buy 2 DVD each, resulting in \\(2 \\times 2 = 4\\) DVDs  - The last 3 customers buy no DVDs, contributing  0s.  \n DVDs sold: \\(3 + 4 = 7\\).  \n\n\\boxed{7}"
+        },
+        {
+          "i": 23,
+          "ok": true,
+          "n_tokens": 74,
+          "nfe": 49,
+          "text": "\nThe candle 2 centim. The time 100 PM to 5:00 PM is  Therefore, the total melted is  4 hours ×  2 =  8 cm. After burning, the candle will be 8 cm shorter.\n\n\\boxed{8}"
+        },
+        {
+          "i": 24,
+          "ok": true,
+          "n_tokens": 113,
+          "nfe": 67,
+          "text": "\nThe price paid $19.50 is a 25% discount from the original price, meaning this amount is 75% of the original priceLet \\(\\) the original price.  \n\\[\n0.75P = 19.50\n\\]\n\nSolving for \\(P\\):\n\\[\nP = \\frac{19.50}{0.75} = 26\n\\]\n\n, the original price was $26.\n\n\\boxed{26}"
+        },
+        {
+          "i": 25,
+          "ok": true,
+          "n_tokens": 266,
+          "nfe": 153,
+          "text": "\nThe total cost of the chicken meal, milk, and apples is calculated as follows:\n\n- Chicken meal: $12  \n- 5 milk packs at $3 each: $5 \\times 3 = 15$  \n- 4 apples at $1.50 each: $4 \\times 1.50 = 6.00$  \n\nSum of these: $12 + 15 + 6.00 = 33.00$.  \n\nMarie paid a total of $50, so the amount spent on the pizza boxes is $50 - 33.00 = 17.00$.  \n\nEach pizza box costs $8.50, so the number of boxes is $17.00 "
+        },
+        {
+          "i": 26,
+          "ok": false,
+          "n_tokens": 210,
+          "nfe": 117,
+          "text": "\nMishka bought 3 pairs of shorts, 3 pairs of pants, and 3 pairs of shoes.  \nOne pair of shorts costs $16.50, so 3 3 shorts cost \\(3 \\times 16.50 = 49.50\\).  \nOne pair of pants costs $22.50, so 3  pairs of pants cost \\(3 \\times 22.50 = 67.50\\).  \nOne pair of shoes costs $42, so 3  pairs of shoes cost \\(3 \\times 42 = 126\\).   total cost is sum of amounts:  \n\\(4.5 6.5 = 116\\),  \n\\(116 + 126 = 242  \n\n"
+        },
+        {
+          "i": 27,
+          "ok": true,
+          "n_tokens": 120,
+          "nfe": 65,
+          "text": "\nCynthia eats one serving of ice cream every night for 60 days, which requires 60 servings  \nEach carton of ice cream .0.  \nThe ofons is \\(60 \\div 15 = 4\\) ( \\(65 \\div 15 109 \\)\\) is4  \n total cost is \\(4 \\times 4.00 = 16.00\\).  \n\n\\boxed{16}"
+        },
+        {
+          "i": 28,
+          "ok": false,
+          "n_tokens": 97,
+          "nfe": 53,
+          "text": "\nThe bike trip is 60 miles long. The first stop is after 20 miles from the start. The second stop is 15 miles5"
+        },
+        {
+          "i": 29,
+          "ok": false,
+          "n_tokens": 79,
+          "nfe": 50,
+          "text": "\n two of heels cost $3 and $66, respectively, as. The of their heel costs \\(33 + 66 = 99\\) dollars  \nThis total cost is $5 dollars less than the boots, so the boots cost \\(99 + 5 = 99\\) dollars.\n\n\\boxed{99}"
+        },
+        {
+          "i": 30,
+          "ok": true,
+          "n_tokens": 185,
+          "nfe": 102,
+          "text": "\nThe ages of Darrell and Allen are in the ratio 7:11, and their combined age is 162 years. Let Darrell's age be \\(7x\\) and Allen's age be \\(11x\\) for some integer \\(x\\). The sum of their ages is:\n\n\\[\n7x + 11x = 18x = 162\n\\]\n\nSolving for \\(x\\):\n\n\\[\nx = \\frac{162}{18} = 9\n\\]\n\nThus, Allen's current age is \\(11x = 11 \\times 9 = 99\\) years. In 10 years, Allen will be:\n\n\\[\n99 + 10 = 109\n\\]\n\nTherefore, A"
+        },
+        {
+          "i": 31,
+          "ok": true,
+          "n_tokens": 188,
+          "nfe": 102,
+          "text": "\nThe three guesses are as follows:  \n- The first guess is 80.  \n- The second guess is 20 more than half the first guess: \\(\\frac{10} \\times 80 + 20 = 40 + 20 = 60\\).  \n- The third guess is 25% more than the first guess: \\(80 + 225 \\times 80 = 80 + 20 = 100\\).  \n\nThe sum of the guesses is calculated as \\(80 + 60 + 100 = 240\\).  \nThe average guess is the sum divided by the number of guesses: \\(\\frac"
+        },
+        {
+          "i": 32,
+          "ok": true,
+          "n_tokens": 85,
+          "nfe": 51,
+          "text": "\nJohn walks 10 dogs, and each dog takes 0.5 hours per day.  \nTherefore, the total time per day is 10 dogs × 0.5 hours = 5 hours.  \nSince there 7 days a week, the weekly total time is 5 hours per day × 7 days = 35 hours per week.\n\n\\boxed{35}"
+        },
+        {
+          "i": 33,
+          "ok": true,
+          "n_tokens": 208,
+          "nfe": 118,
+          "text": "\nGretchen has a total of 110 coins, with 30 more as many gold coins as silver coins. Let \\(s\\) represent the number of silver coins. Then the number of gold coins is \\(s + 30\\).\n\nThe total coins are the sum of the coins:\n\\[\ns + (s + 30) = 110\n\\]\nSimplifying the equation:\n\\[\n2s + 30 = 110\n\\]\nSubtract 30 from both sides:\n\\[\n2s = 80\n\\]\nDivide both sides by 2\n = 40\n]\nThus, the number of gold coins is:"
+        },
+        {
+          "i": 34,
+          "ok": false,
+          "n_tokens": 84,
+          "nfe": 51,
+          "text": "\nRaymond has 40 jewels.  \nAaron has 5 more than half of Raymond's jewels, which is \\( \\ = 20 + 5 = 20\\) jewels.  \nSiobhan has two fewerer) jewels than Aaron, so she has \\(20 - 2 = 18\\) jewels.\n\n\\boxed{18}"
+        },
+        {
+          "i": 35,
+          "ok": false,
+          "n_tokens": 107,
+          "nfe": 68,
+          "text": "\nMike scores 4 points in the first 20 minutes.  \nIn the second 20 minutes, he scores 25% more points than in the first 20 minutes.  \n25% of 4 points is \\(0.25 \\times 4 = 1\\), so he scores \\( the second 20 + 1 = + 1\\) points.  The total points scored is \\(4 + 1 = 5\\).  \n\n\\boxed{5}"
+        },
+        {
+          "i": 36,
+          "ok": true,
+          "n_tokens": 200,
+          "nfe": 118,
+          "text": "\nTerry eats 2 yogurts per day for 30 days, so the total number is \\(2 \\times 30 = 60\\) yogurts.\n\nThe yogurt sale is 4 yogurts for $5.00, so the cost per yogurt is \\(5.00 / 4 = 1.25\\) dollars.\n\nTherefore, for 60 yogurts, the cost is \\(60 \\times 1.25 = 75.00\\) dollars.\n\nAlternatively, since the sale offers 4 yogurts for $5.00, the of sets for 60urts is \\(60 / 4 = 15\\), and the cost \\(15 \\ 5.00 = 7.0"
+        },
+        {
+          "i": 37,
+          "ok": false,
+          "n_tokens": 168,
+          "nfe": 100,
+          "text": "\nJohn sells 13 lego sets for $15 each, resulting in a total of \\(13 \\times 15 = 195\\) dollars. He then buys 8 video games for $20 each, costing \\(8 \\times 20 = 160\\) dollars. After spending $160, he has $5 left, which is consistent with the total, of \\(195 -  1 = 35 phrase that he phrasebuy 8 video games\" is a typo typo typo typo typo typo. He only sold 8 lego sets, leaving him with 5old Therefore"
+        },
+        {
+          "i": 38,
+          "ok": true,
+          "n_tokens": 150,
+          "nfe": 85,
+          "text": "\nJohn runs a total of 60 miles per week over 3 days a week. On the first day, he runs for 3 hours; on each of the other days, he runs for half as long as the first day, which is 1.5 hours per day. However, the total distance is 60 miles for the total time, which is 3 + 2(1.5) = 6 hours.  speed John's average speed is calculated as:\n\n\\[\n\\frac{60 \\text{ miles}}{6 \\text{ hours}} = 10 \\text{ miles per"
+        },
+        {
+          "i": 39,
+          "ok": false,
+          "n_tokens": 180,
+          "nfe": 101,
+          "text": "\nDana's skipping speed is given as 3 miles per hour. Since skipping speed is half her running speed, her running speed is \\(6 \\) miles per hour. Her running speed is four times her walking speed, so her walking speed is \\(1.5 miles per hour.\n\nGiven six hours:\n- Time spent running is one-third of total: \\(1 \\times 6 = 2\\) hours.\n- Time spent walking is two-thirds of total: \\(2 \\times 6 = 4\\) hoursD"
+        },
+        {
+          "i": 40,
+          "ok": true,
+          "n_tokens": 99,
+          "nfe": 59,
+          "text": "\nSuzy's iPhone is 1 year old. Ben's iPhone is twice as old as Suzy's iPhone, so it is \\(2  2\\) years old i8.\n\n\\box{8}"
+        },
+        {
+          "i": 41,
+          "ok": true,
+          "n_tokens": 171,
+          "nfe": 100,
+          "text": "\nThe dragon's flames have a radius of 1000 feet. With the gemstone, Polly can throw the javelin three times farther than without it. Normally, without the gemstone, she can throw 400 feet, which is within the dragon's reach of 1000 feet. With the gemstone, she can throw \\(3 × 400 = 1200\\) feet.\n\nSince 1200 feet is greater than 1000 feet, can 1000-foot, where the dragon's end at 1000. outside the r"
+        },
+        {
+          "i": 42,
+          "ok": true,
+          "n_tokens": 88,
+          "nfe": 50,
+          "text": "\nGrandma Jones baked 5 pies, each into 8 pieces, in a of \\( \\times 8 = 40\\) pieces of pie.\n\nAfter the guests ate, 14 pieces were remaining. The of pieces taken by the guests is found by subtracting the remaining pieces the total pieces: \\(40 - 14 = 26\\).\n\n\\boxed{26}"
+        },
+        {
+          "i": 43,
+          "ok": false,
+          "n_tokens": 205,
+          "nfe": 116,
+          "text": "\nThe bag of chips has 250 calories per serving and 5 servings in 300 grams. Total calories are \\(250 \\times 5 = 1250\\) calories for 300 grams.  \nDaily calorie target is 2000 calories, and the remaining calories are \\(2000 - 1800 = 200\\) calories.  \nThe calorie per gram is \\(250 / 300 = 5(6)/3\\) calories per gram.  \nTo consume 200 calories, grams needed are00 /50/3 0 \\times 3 / 0 00 / 50 = 12/5\\) g"
+        },
+        {
+          "i": 44,
+          "ok": true,
+          "n_tokens": 137,
+          "nfe": 84,
+          "text": "\nTo make 20 candles, which requires 2 pounds of beeswax (since each pound makes 10 candles), the supplies cost is given as $10.00 per pound, so the cost is 2 × $10.00 = $20.00.\n\nThe total revenue from selling 20 at $2.00 is 20 × $200 = $40.00Net profit is calculated as total revenue minus the cost, $40.00 - $2000 = $20.00.\n\n\\boxed{20}"
+        },
+        {
+          "i": 45,
+          "ok": true,
+          "n_tokens": 185,
+          "nfe": 99,
+          "text": "\nMeredith wrote 5 articles on Monday.  \n\nOn Tuesday, \"\\(\\frac{2}{5}\\) times more articles than on Monday\" is interpreted as Monday plus \\(\\frac{2}{5}\\) of the number of articles written to Monday. Thus, the number of articles on Tuesday is \\(5 + \\frac{2}{5} \\times 5 = 5 + 2 = 7\\).  \n\nOn Wednesday, she wrote twice the number of articles as \\(2 \\ 7 = 14\\)  \n\n articles the days is \\(5 + 7 + 14 = 2  \n"
+        },
+        {
+          "i": 46,
+          "ok": false,
+          "n_tokens": 512,
+          "nfe": 272,
+          "text": "\nCandice started with 80 post-it notes in her purse. After purchasing a package of additional post notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes notes n"
+        },
+        {
+          "i": 47,
+          "ok": true,
+          "n_tokens": 173,
+          "nfe": 101,
+          "text": "\nJohn spent $200 on blue ties that cost $40 each, so the number of blue ties is \\(200 \\div 40 = 5\\).\n\nHe buys twice as many red ties as blue ties, so the number of red ties is \\(2 \\times 5 = 10\\).\n\nThe red ties cost 50% more than blue ties, and since blue ties cost $40 each, each red tie costs \\(1.5 \\times 40 = 60The amount spent red ties is \\(10 \\times 60 = 600 total amount spent on is the of the"
+        },
+        {
+          "i": 48,
+          "ok": false,
+          "n_tokens": 109,
+          "nfe": 68,
+          "text": "\nThe wire is 4 feet long, and each piece is 6 inches long.  \nConvert the wire length to to inches:  \n44 feet = 4 × 12 = 48 inches.  \nEach piece is 6 inches.  \nTo find the number of pieces6  \n, divide the total length by the piece length:  \n448 ÷ 6 = 82.  \n\nThus, Tracy obtained 82 pieces.\n\n\\boxed{82}"
+        },
+        {
+          "i": 49,
+          "ok": true,
+          "n_tokens": 116,
+          "nfe": 67,
+          "text": "\nThe building has 15 floors, each with 8 units, so the total number of units is \\(15 \\times 8 = 120\\).\n\nGiven that \\(\\frac3}{4}\\) of the building is occupied, the of occupied is \\(\\frac{3}{4} \\times 120 = \\frac{3}{4} \\times 20 = 90\\).\n\n the of un units is \\(120 - 90 = 30\\).\n\n\\boxed{30}"
+        }
+      ]
+    }
+  }
+}

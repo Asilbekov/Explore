@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Inter:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: 794px 1123px; margin: 0; }
+  :root {
+    --c-bg: #0a1628; --c-accent: #4da8da; --c-text: #e8f0f8;
+    --c-muted: #7a9bb8; --c-glow: #2d7ab3;
+  }
+  html, body { margin: 0; padding: 0; width: 794px; height: 1123px;
+    background: var(--c-bg); color: var(--c-text);
+    font-family: 'Inter', sans-serif; }
+  @media screen {
+    html { height: auto; display: flex; justify-content: center; min-height: 100vh; background: var(--c-bg); }
+    body { transform-origin: top center; scale: min(1, calc(100vw / 794), calc(100vh / 1123)); margin: 0 auto; }
+  }
+  .cover { width: 794px; height: 1123px; position: relative; }
+  .bg-layer { position: absolute; inset: 0; overflow: hidden; z-index: 1; }
+  .glow-a { position: absolute; left: 40px; top: 60px; width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(45,122,179,0.10) 0%, rgba(45,122,179,0) 70%); }
+  .glow-b { position: absolute; right: 60px; bottom: 90px; width: 480px; height: 480px;
+    background: radial-gradient(circle, rgba(77,168,218,0.08) 0%, rgba(77,168,218,0) 70%); }
+  .frame { position: absolute; left: 60px; right: 60px; top: 80px; bottom: 80px;
+    border: 2px solid var(--c-accent); z-index: 2; }
+  .layer3 { position: absolute; inset: 0; z-index: 3; }
+  .kicker { position: absolute; left: 104px; top: 135px; font-size: 11pt;
+    color: var(--c-accent); letter-spacing: 5px; text-transform: uppercase;
+    font-weight: 300; }
+  .title { position: absolute; left: 104px; top: 236px; max-width: 560px;
+    font-family: 'Playfair Display', serif; font-weight: 900; font-size: 46pt;
+    line-height: 1.15; color: var(--c-text); }
+  .subtitle { position: absolute; left: 104px; top: 560px; max-width: 540px;
+    font-size: 13pt; line-height: 1.55; color: var(--c-muted); font-weight: 300; }
+  .summary { position: absolute; left: 104px; top: 690px; max-width: 520px;
+    font-size: 10.5pt; line-height: 1.65; color: var(--c-muted); }
+  .org { position: absolute; left: 104px; top: 902px; font-size: 15pt;
+    color: var(--c-text); font-weight: 400; }
+  .org small { display: block; font-size: 10pt; color: var(--c-muted);
+    margin-top: 6px; font-weight: 300; }
+  .date { position: absolute; left: 104px; bottom: 104px; font-size: 10pt;
+    color: var(--c-muted); letter-spacing: 3px; text-transform: uppercase; }
+</style>
+</head>
+<body>
+  <div class="cover">
+    <div class="bg-layer"><div class="glow-a"></div><div class="glow-b"></div></div>
+    <div class="frame"></div>
+    <div class="layer3">
+      <div class="kicker">Технический отчёт · Маскированная диффузия</div>
+      <div class="title">«Мокрое<br>чернило» на<br>Nemotron-Labs-<br>Diffusion 3B</div>
+      <div class="subtitle">Ревизия открытых токенов без переобучения:<br>
+        диагностика, пере-аудит формул и пересборка<br>на опубликованных механизмах</div>
+      <div class="summary">Диффузионный фронтир пишет токены слева направо, а открытые
+        токены в окне позади фронтира остаются поправимыми. Отчёт восстанавливает полный
+        цикл: идея → сборка v1 → рост качества GSM8K 86%→92% при цене 13× NFE →
+        формальная диагностика первопричины → каталог из тринадцати семейств формул →
+        пересборка v2 на циклах RemeDi (ICLR 2026) и CoDR (EMNLP 2026) → верификация
+        на полной модели.</div>
+      <div class="org">Проект Wet-Ink · Asilbekov
+        <small>Базовая модель: nvidia/Nemotron-Labs-Diffusion-3B · эксперименты: Kaggle Tesla T4</small>
+      </div>
+      <div class="date">Ноябрь 2026 · Версия 2.0</div>
+    </div>
+  </div>
+</body>
+</html>
