@@ -1,4 +1,4 @@
-# Wet-Ink v2: ревизия открытых токенов для Nemotron-Labs-Diffusion (training-free)
+# Wet-Ink: ревизия открытых токенов — от Nemotron (v1–v3) к LLaDA2.2-mini (v4)
 
 Реализация идеи **«мокрого чернила»** для `nvidia/Nemotron-Labs-Diffusion-3B`:
 диффузионный фронтир открывает токены слева направо, а уже открытые токены в
@@ -132,6 +132,68 @@ generate_wet_ink(model, prompt, max_new_tokens, block_length,
 литературе ревизия начинает выигрывать. Полный разбор — в техническом отчёте
 `docs/wet-ink-report.pdf`.
 
+---
+
+## v3: полный бенчмарк на Nemotron (GSM8K n=200 + HumanEval 164)
+
+Прогон `kaggle/` (Tesla T4, fp16, 15 конфигураций, 2 820 генераций). Протоколы и
+статистика: точный McNemar на парных задачах, Wilson 95% CI, NFE-бухгалтерия.
+
+| Конфиг | GSM8K acc | NFE | McNemar vs сток |
+|---|---|---|---|
+| сток b32 (t=0.9) | **86.5%** | 64.9 | — |
+| CoDR W=1 b32 | 86.5% | 79.5 | p=1.0 (8/8) |
+| RemeDi W=1 b32 | 74.0% | 193.0 | **p=0.0002** (10/35) |
+| сток b64 | 85.5% | 63.5 | — |
+| CoDR W=1 b64 | 87.0% | 68.6 | p=0.55 (7/4) |
+| RemeDi W=1 b64 | 70.0% | 202.5 | **p<0.0001** (7/38) |
+| сток b128 | 81.0% | 73.4 | — |
+| CoDR W=1 b128 | 78.5% | 78.0 | p=0.23 (3/8) |
+| RemeDi W=1 b128 | 55.0% | 218.2 | **p<0.0001** (18/70) |
+
+HumanEval (164 задачи): сток b32 44.5%, CoDR b32 43.9% (нейтрален), RemeDi
+b32 25.0% (p<0.0001, −19.5 п.п.). Эквивалентность W=0 ≡ сток — битовая, все
+политики. Полные данные: `results/results_v3.json`.
+
+**Вывод v3:** на Nemotron training-free ревизия при жадном декодировании либо
+нейтральна (CoDR), либо значимо вредна (RemeDi) — в точности по калибровке
+NeurIPS 2026 (арXiv:2606.12232): «узкое место — сама dLLM, а не правило
+ремаскинга». Сигнал ревизии реален (задачи, чинимые всеми конфигами, есть),
+но без обучения под ремаскинг агрессивное разжижение окна рушит связность.
+
+## v4: смена базы по правилу (г) — LLaDA2.2-mini
+
+Правило (г) расширено владельцем идеи: **если новая база уже содержит обученный
+механизм для нашей задачи и он лучше — берём базу со всеми её формулами, а
+устаревший внешний цикл отбрасываем.**
+
+Новая база `inclusionAI/LLaDA2.2-mini` (16B MoE / 1.4B активных, Apache 2.0)
+содержит **Levenshtein Editing** (токены DELETE/SPLIT, обучение L-EBPO):
+встроенный T2T-гейт `t2t_index = (p0 > editing_threshold) & (old != x0)`
+— это confidence-гейт идеи wet-ink, но *обученный* и ограниченный
+(`max_post_steps`, антилуп-ресемплер, подавление SPLIT/DELETE на финальном
+раунде, детектор остаточных спец-токенов). Окно правки = текущий блок
+(`block_length`) — ровно «мокрое чернило».
+
+Что отброшено как дубликат встроенного механизма: **RemeDi** и **CoDR**.
+Что переносится без изменений: протоколы GSM8K/HumanEval, точный McNemar +
+Wilson CI, NFE-бухгалтерия. «Методы поверх базы» = конфигурация собственных
+параметров `generate()` модели: `block_length` ∈ {32,64,128},
+`editing_threshold` ∈ {0.0, 0.5, 0.7, 2.0=OFF}, `max_post_steps` ∈ {16, 4},
+`threshold` ∈ {0.5, 0.9}.
+
+Железо: **2×Tesla T4, 8-бит (bitsandbytes int8), eager attention**
+(SDPA отвергает bf16-маску редактирования; eager промоутит её в fp32 —
+собственный путь внимания модели). Замер пайплайна: ~3.8–4.2 с на прямой
+проход → сетка core-first с адаптивными капами (планировщик `plan_n`).
+
+Локальная верификация механики (tiny-модель той же архитектуры, 20.3M,
+случайные веса): все 9 конфигов завершаются, 0 остаточных спец-токенов,
+жадное декодирование детерминировано, bf16-маска+fp16 совместимы,
+int8 не трогает MoE-роутер (сырой nn.Parameter в fp32). Код:
+`scripts/test_llada22_tiny.py` (в песочнице), ядро: `kaggle_v4/kernel.py`.
+
+
 ## Провенанс (каждая формула — источник)
 
 | Элемент | Источник (дословно) |
@@ -165,9 +227,13 @@ kaggle/
   kernel_harness.py         # стенд v2: sanity→эквивалентность→GSM8K (6 конфигураций)
   kernel-metadata.json
   kernel.py                 # собранный кёрнел (wet_ink.py + kernel_harness.py)
+kaggle_v4/
+  kernel.py                 # ядро v4: LLaDA2.2-mini, 2×T4, int8, adaptive core-first
+  kernel-metadata.json
 results/
   results.json              # прогон v1 (T4, fp16)
   results_v2.json           # прогон v2 (T4, fp16)
+  results_v3.json           # прогон v3 (T4, fp16): 15 конфигов, GSM8K-200 + HumanEval-164
 scripts/
   summarize_results.py
 ```
@@ -189,11 +255,10 @@ out, nfe, stats = generate_wet_ink(model, ids, max_new_tokens=256, block_length=
 
 ## Future work
 
-1. n ≥ 500 (GSM8K полностью, MATH-500) для статзначимости.
-2. Длинные блоки (64/128) — по литературе именно там эффект ревизии максимален.
-3. Интеграция Fast-dLLM (блочный кэш + параллельное декодирование) и APD
-   ( mixture с AR-головой самой модели).
-4. 8B/14B чекпоинты — выше уверенности → дешевле ревизия.
+1. v4 (LLaDA2.2-mini): дождаться прогона, применить McNemar-аппарат, обновить отчёт.
+2. n ≥ 500 для статзначимости при положительном сигнале.
+3. Длинные блоки (64/128) на новой базе — встроенная правка против v3-провала RemeDi.
+4. Fast-dLLM-кэш поверх LLaDA2 (ортогонально правке).
 
 ## Источники
 
@@ -204,6 +269,8 @@ out, nfe, stats = generate_wet_ink(model, ids, max_new_tokens=256, block_length=
 - WINO: github.com/Feng-Hong/WINO-DLLM
 - Saber: arXiv:2510.18165 (ACL 2026), github.com/zhaoyMa/Saber
 - LLaDA: Nie et al., NeurIPS 2025, github.com/ML-GSAI/LLaDA
+- LLaDA2.2-mini: inclusionAI (2026), huggingface.co/inclusionAI/LLaDA2.2-mini —
+  Levenshtein Editing (DELETE/SPLIT), L-EBPO, Apache 2.0; код модели изучен дословно
 - Dream 7B: arXiv:2508.15487, github.com/HKUNLP/Dream
 - ProSeCo: arXiv:2602.11590 (NeurIPS 2026), github.com/kuleshov-group/proseco
 - Re-evaluating Confidence Remasking: arXiv:2606.12232 (NeurIPS 2026),
