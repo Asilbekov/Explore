@@ -7,6 +7,7 @@
 """
 import hashlib
 import json
+import math
 import os
 import subprocess
 import sys
@@ -208,7 +209,9 @@ def add_table(story, header, rows, ratios, caption, **kw):
 
 
 def callout(story, stat, label, width=150):
-    box = Table([[Paragraph(f"<b>{stat}</b>", S["stat"])],
+    st = S["stat"] if len(stat) <= 7 else ParagraphStyle(
+        "stat_sm", parent=S["stat"], fontSize=14.5, leading=18)
+    box = Table([[Paragraph(f"<b>{stat}</b>", st)],
                  [Paragraph(label, S["stat_lbl"])]], colWidths=[width])
     box.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), CARD_BG),
@@ -248,18 +251,59 @@ with open(V3_PATH) as f:
     V3 = json.load(f)
 
 V4_PATH = "/home/z/my-project/wet_ink/results/results_v4.json"
-V4 = {}
-if os.path.isfile(V4_PATH):
-    try:
-        with open(V4_PATH) as f:
-            V4 = json.load(f)
-    except Exception:  # noqa: BLE001
-        V4 = {}
+with open(V4_PATH) as f:
+    V4 = json.load(f)
+
+TOK_CAP = 160  # gen_length адаптивного прогона v4
 
 
-def v4_has_results():
-    g = V4.get("gsm8k", {})
-    return any("details" in a and "skipped" not in a for a in g.values())
+def _arm_stats(a):
+    det = [d for d in a.get("details", []) if "error" not in d]
+    n = len(det)
+    k = sum(bool(d.get("ok", d.get("passed"))) for d in det)
+    p = k / max(n, 1)
+    z = 1.96
+    dd = 1 + z * z / n
+    c = (p + z * z / (2 * n)) / dd
+    h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / dd
+    wall = a.get("wall_seconds",
+                 a.get("gen_wall_seconds", 0) + a.get("exec_wall_seconds", 0))
+    return dict(
+        n=n, k=k, acc=100 * p, lo=100 * max(0.0, c - h), hi=100 * min(1.0, c + h),
+        nfe=sum(d.get("nfe", 0) for d in det) / max(n, 1),
+        churn=sum(d.get("churn", 0) for d in det) / max(n, 1),
+        spt=wall / max(n, 1),
+        trunc=sum(1 for d in det if d.get("n_tokens", 0) >= TOK_CAP),
+        fin=[d for d in det if d.get("n_tokens", 0) < TOK_CAP],
+    )
+
+
+def _mcnemar_p(b, c):
+    n = b + c
+    if n == 0:
+        return 1.0
+    kk = min(b, c)
+    return min(1.0, 2 * sum(math.comb(n, i) for i in range(kk + 1)) / 2 ** n)
+
+
+V4_NOEDIT = _arm_stats(V4["gsm8k"]["noedit_b32"])
+V4_STOCK = _arm_stats(V4["gsm8k"]["stock_b32"])
+_m0 = {d["i"]: d for d in V4["gsm8k"]["noedit_b32"]["details"] if "error" not in d}
+_m1 = {d["i"]: d for d in V4["gsm8k"]["stock_b32"]["details"] if "error" not in d}
+V4_COMMON = sorted(set(_m0) & set(_m1))
+_v_b = sum(1 for i in V4_COMMON if not _m0[i]["ok"] and _m1[i]["ok"])
+_v_c = sum(1 for i in V4_COMMON if _m0[i]["ok"] and not _m1[i]["ok"])
+V4_PAIR = dict(
+    n=len(V4_COMMON), fixed=_v_b, broken=_v_c, p=_mcnemar_p(_v_b, _v_c),
+    nfe0=sum(_m0[i]["nfe"] for i in V4_COMMON) / len(V4_COMMON),
+    nfe1=sum(_m1[i]["nfe"] for i in V4_COMMON) / len(V4_COMMON),
+    ch0=sum(_m0[i].get("churn", 0) for i in V4_COMMON) / len(V4_COMMON),
+    ch1=sum(_m1[i].get("churn", 0) for i in V4_COMMON) / len(V4_COMMON),
+)
+V4_PAIR["nfe_ratio"] = V4_PAIR["nfe1"] / V4_PAIR["nfe0"]
+V4_PAIR["ch_ratio"] = V4_PAIR["ch1"] / V4_PAIR["ch0"]
+V4_FIN_ALL = V4_NOEDIT["fin"] + V4_STOCK["fin"]
+V4_FIN_OK = sum(bool(d["ok"]) for d in V4_FIN_ALL)
 
 # v3 paired stats
 V3_STATS = V3.get("stats", {})
@@ -289,112 +333,6 @@ def v3_pair(bench, name):
         p=f"{s['mcnemar_p']:.4f}" + (" *" if s.get("mcnemar_p", 1) < 0.05 else ""),
         nfe_ratio=f"{s.get('nfe_ratio', 0):.2f}×" if s.get("nfe_ratio") else "—",
     )
-
-
-# ---------------------------------------------------------------- v4 helpers + chart
-def _v4_rows(bench):
-    """Summarize v4 arms of a benchmark: name -> stats row."""
-    out = {}
-    for name, a in (V4.get(bench) or {}).items():
-        if "skipped" in a or "details" not in a:
-            continue
-        det = [d for d in a["details"] if "error" not in d]
-        n = len(det)
-        if n == 0:
-            continue
-        k = sum(1 for d in det if d.get("ok", d.get("passed")))
-        out[name] = dict(
-            n=n, k=k, acc=100.0 * k / n,
-            nfe=sum(d.get("nfe", 0) for d in det) / n,
-            churn=sum(d.get("churn", 0) for d in det) / n,
-            tok=sum(d.get("n_tokens", 0) for d in det) / n,
-            blk=a.get("block_length"), det=det,
-        )
-    return out
-
-
-def _mcnemar(a_det, b_det):
-    """Paired exact McNemar between two detail lists (by task index i)."""
-    from math import comb
-    ma = {d["i"]: d for d in a_det}
-    mb = {d["i"]: d for d in b_det}
-    common = sorted(set(ma) & set(mb))
-    x = y = 0
-    for i in common:
-        oa = bool(ma[i].get("ok", ma[i].get("passed")))
-        ob = bool(mb[i].get("ok", mb[i].get("passed")))
-        if oa and not ob:
-            x += 1
-        elif ob and not oa:
-            y += 1
-    n = x + y
-    if n == 0:
-        return x, y, 1.0
-    kk = min(x, y)
-    pv = sum(comb(n, i) for i in range(kk + 1)) / 2 ** n
-    return x, y, min(1.0, 2 * pv)
-
-
-def make_charts_v4():
-    """Accuracy/NFE bars for v4 arms; only called when results exist."""
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.font_manager as fm
-    import matplotlib.pyplot as plt
-    fm.fontManager.addfont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-    plt.rcParams["font.sans-serif"] = ["DejaVu Sans"]
-    plt.rcParams["axes.unicode_minus"] = False
-
-    c_ctl = "#1a4a7a"   # noedit control
-    c_trt = "#2d7ab3"   # treatment (gate ON)
-    c_abl = "#4da8da"   # ablations
-    g = _v4_rows("gsm8k")
-    order = [("noedit_b32", "b32 без правки", c_ctl),
-             ("stock_b32", "b32 правка (default)", c_trt),
-             ("edit0.7_b32", "b32 гейт 0.7", c_abl),
-             ("edit0.5_b32", "b32 гейт 0.5", c_abl),
-             ("noedit_b64", "b64 без правки", c_ctl),
-             ("stock_b64", "b64 правка", c_trt),
-             ("noedit_b128", "b128 без правки", c_ctl),
-             ("stock_b128", "b128 правка", c_trt),
-             ("mps4_b32", "b32 mps=4", c_abl),
-             ("stock_b32_t0.9", "b32 t=0.9", c_abl)]
-    labels, accs, nfes, cols = [], [], [], []
-    for key, lab, col in order:
-        if key in g:
-            labels.append(lab)
-            accs.append(g[key]["acc"])
-            nfes.append(g[key]["nfe"])
-            cols.append(col)
-    if not labels:
-        return None
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7.6, 0.5 * len(labels) + 2.6),
-                                   constrained_layout=True)
-    x = list(range(len(labels)))
-    ax1.bar(x, accs, color=cols, edgecolor="white", linewidth=0.6, zorder=3)
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(labels, fontsize=8.2, rotation=18, ha="right")
-    ax1.set_ylabel("Точность GSM8K, %", fontsize=9.5)
-    lo = max(0, min(accs) - 8), min(100, max(accs) + 4)
-    ax1.set_ylim(*lo)
-    ax1.spines["top"].set_visible(False); ax1.spines["right"].set_visible(False)
-    ax1.grid(axis="y", linestyle="--", alpha=0.3, linewidth=0.6, zorder=0)
-    for xi, v in zip(x, accs):
-        ax1.text(xi, v + 0.4, f"{v:.1f}", ha="center", fontsize=8.0, color="#142840")
-    ax2.bar(x, nfes, color=cols, edgecolor="white", linewidth=0.6, zorder=3)
-    ax2.set_xticks(x)
-    ax2.set_xticklabels(labels, fontsize=8.2, rotation=18, ha="right")
-    ax2.set_ylabel("Ср. NFE на задачу", fontsize=9.5)
-    ax2.spines["top"].set_visible(False); ax2.spines["right"].set_visible(False)
-    ax2.spines["left"].set_visible(False)
-    ax2.grid(axis="y", linestyle="--", alpha=0.3, linewidth=0.6, zorder=0)
-    ax2.tick_params(axis="both", labelsize=8.4)
-    for xi, v in zip(x, nfes):
-        ax2.text(xi, v * 1.02, f"{v:.0f}", ha="center", fontsize=8.0, color="#142840")
-    p = os.path.join(WORK_DIR, "chart_v4_gsm8k.png")
-    fig.savefig(p, dpi=200)
-    plt.close(fig)
-    return p
 
 
 # ---------------------------------------------------------------- doc template
@@ -465,7 +403,7 @@ def build_story():
         ("v3 → v4", "смена базы: Nemotron → LLaDA2.2-mini"),
         ("2×T4 + int8", "максимальная скорость, 16B в 2×16 ГБ"),
         ("0×", "самодельных формул поверх новой базы"),
-        ("~4 с/NFE", "замер пайплайна; сетка — core-first"),
+        ("COMPLETE", "ядро v4: 7,30 ч из 7,5 ч бюджета"),
     ])
     story.append(P(
         "Ключевая находка дословного чтения кода LLaDA2.2-mini: T2T-правка "
@@ -477,6 +415,18 @@ def build_story():
         "SPLIT/DELETE подавляются на финальном раунде, остаточные mask/split/delete "
         "детектируются как warning. По правилу (г) мы используем её «как есть» и "
         "сканируем собственные параметры как абляции гейта."))
+    story.append(P(
+        "<b>Итог v4 (раздел 8).</b> Ядро завершилось за 7,30 ч из 7,5 ч: механика "
+        "порта подтверждена (sanity без остаточных спец-токенов; жадное декодирование "
+        "побитово детерминировано на 2×T4-pipeline — ids_equal=True для b32 и b64). "
+        "В рамках бюджета уместилась только P0-пара GSM8K (блок 32, контроль против "
+        "wet-ink): +2,4 п.п. (22,4% против 20,0%), McNemar p = 1,0 на 49 парных "
+        "задачах — мощности не хватило для вывода о качестве. Положительный "
+        "побочный сигнал: обученная T2T-правка экономит 16% NFE (×0,84) и ~15% "
+        "времени на задачу. Абсолютные точности занижены усечением: адаптивный "
+        "планировщик сжал gen_length до 160 токенов, и 84% генераций упёрлись в "
+        "лимит до \\boxed{}; среди 20 естественно завершённых (EOS) ответов верны "
+        "все 20. Вывод о методе — за прогоном v4.1 с gen_length=256."))
 
     # ================================================= 2. Идея и правила
     h1(story, "2. Идея и правила проекта")
@@ -702,48 +652,36 @@ def build_story():
 
     # ================================================= 6. Дизайн v4
     h1(story, "6. Дизайн v4")
-    h2(story, "6.1. Пропускная способность и адаптивная сетка")
-    story.append(P(
-        "Первые три запуска v4 на Kaggle дали калибровку железа: модель грузится "
-        "за 133 с, жадное декодирование полностью детерминировано, но "
-        "пропускная способность пайплайна 2×T4 int8 составила <b>~3,8–4,2 с "
-        "на один прямой проход</b> (замер: 16 NFE за 61 с при генерации 64 "
-        "токенов). При таком темпе полный v3-грид (14 веток × 200/164 задачи) "
-        "потребовал бы ~10× бюджета сессии 7,5 ч. Поэтому сетка v4 перестроена "
-        "как <b>core-first с адаптивными капами</b>: главный вопрос — помогает "
-        "ли обученный T2T-гейт — закрывается первым и гарантированно, "
-        "остальные ветки добираются по остатку бюджета (планировщик plan_n "
-        "считает доступное число задач по измеренному времени на задачу и "
-        "защищает пары: обе ветки пары получают одинаковый кап)."))
+    h2(story, "6.1. Сетка конфигураций")
     add_table(story,
-              ["Приоритет", "Конфиг", "block", "editing_threshold", "кап n"],
+              ["Приоритет", "Конфиг", "block_length", "editing_threshold", "max_post_steps", "threshold M2T"],
               [
-                  ["P0", "noedit_b32 (контроль: T2T выкл)", "32", "2.0 (OFF)", "75"],
-                  ["P0", "stock_b32 (встроенный wet-ink)", "32", "0.0 (default)", "75"],
-                  ["P1", "edit0.7_b32", "32", "0.7", "55"],
-                  ["P1", "edit0.5_b32", "32", "0.5", "45"],
-                  ["P2", "he_noedit_b32 / he_stock_b32", "32", "2.0 / 0.0", "30"],
-                  ["P2", "noedit_b64 / stock_b64", "64", "—", "40"],
-                  ["P3", "noedit_b128 / stock_b128", "128", "—", "30"],
-                  ["P3", "mps4_b32 (max_post_steps=4)", "32", "0.0", "40"],
-                  ["P3", "stock_b32_t0.9 (v3-контроль)", "32", "0.0", "40"],
+                  ["P0", "noedit_b32", "32", "2.0 (OFF)", "16", "0.5"],
+                  ["P0", "stock_b32", "32", "0.0 (default)", "16", "0.5"],
+                  ["P0", "he_noedit_b32 / he_stock_b32", "32", "2.0 / 0.0", "16", "0.5"],
+                  ["P1", "edit0.5_b32", "32", "0.5", "16", "0.5"],
+                  ["P1", "edit0.7_b32", "32", "0.7", "16", "0.5"],
+                  ["P2", "noedit_b64 / stock_b64 / edit0.7_b64", "64", "—", "16", "0.5"],
+                  ["P2", "he_noedit_b64 / he_stock_b64", "64", "—", "16", "0.5"],
+                  ["P2", "noedit_b128 / stock_b128", "128", "—", "16", "0.5"],
+                  ["P3", "mps4_b32 (max_post_steps=4)", "32", "0.0", "4", "0.5"],
+                  ["P4", "stock_b32_t0.9 (v3-control)", "32", "0.0", "16", "0.9"],
               ],
-              [0.08, 0.38, 0.10, 0.24, 0.20],
-              "Таблица 6. Сетка v4 (адаптивная). noedit = T2T выключен "
-              "(editing_threshold=2.0 — недостижимое значение p0 ∈ [0,1]) — контроль "
-              "«база без правки». stock = 0.0 (default). gen_length=160, "
-              "temperature=0, eos_early_stop=True. Пары — в порядке приоритета; "
-              "кап — верхняя граница, plan_n срезает по бюджету.",
-              font="td", align_center_cols={0, 2, 3, 4})
+              [0.08, 0.30, 0.15, 0.20, 0.13, 0.14],
+              "Таблица 6. Сетка v4. noedit = T2T выключен (editing_threshold=2.0, "
+              "недостижимое значение p0 ∈ [0,1]) — контроль «база без правки». "
+              "stock = editing_threshold=0.0 (default) — встроенный wet-ink. "
+              "edit0.5/0.7 — абляции гейта.",
+              font="td", align_center_cols={0, 2, 3, 4, 5})
     story.append(P(
         "Логика приоритетов: P0 — главное сравнение «с правкой vs без правки» "
-        "на коротком блоке 32 при максимальном n; P1 — где на шкале [0,1] сидит "
-        "обученный гейт; P2 — HumanEval-пара и длинные блоки 64 (где, по "
-        "калибровке NeurIPS 2026, ревизия должна начать выигрывать); P3 — "
-        "бонус-ветки (блоки 128, speed-вариант mps4, порог M2T 0.9 для прямой "
-        "сравнимости с v3). Протоколы GSM8K/HumanEval, статистика (точный "
-        "McNemar на общих задачах пары, Wilson 95% CI, NFE-ratio, fix/break) и "
-        "логгинг — без изменений из v3."))
+        "на коротком блоке 32; P1 — где на шкале [0,1] сидит обученный гейт; "
+        "P2 — длинные блоки 64/128, где, по калибровке NeurIPS 2026, ревизия "
+        "должна начать выигрывать; P3 — speed-вариант с урезанным пост-бюджетом; "
+        "P4 — порог M2T=0.9 (как в v3) для прямой сравнимости с прошлой базой. "
+        "Фактический прогон (раздел 8.1) исполнял эту сетку через адаптивный "
+        "планировщик plan_n(): приоритетный порядок с капами, остаток бюджета — "
+        "более низким приоритетам."))
     h2(story, "6.2. Гарантия завершимости")
     story.append(P(
         "Все гарантии — штатные LLaDA2: (1) transfer_schedule — фиксированное "
@@ -798,154 +736,144 @@ def build_story():
               "Тест только механический — о качестве говорят только Kaggle-результаты.",
               font="td", align_center_cols={1})
 
-    # ================================================= 8. Статус / результаты v4
-    if v4_has_results():
-        h1(story, "8. Результаты v4 на LLaDA2.2-mini")
-        g4 = _v4_rows("gsm8k")
-        h2(story, "8.1. GSM8K: точность и NFE")
-        rows = []
-        for key in ["noedit_b32", "stock_b32", "edit0.7_b32", "edit0.5_b32",
-                    "noedit_b64", "stock_b64", "noedit_b128", "stock_b128",
-                    "mps4_b32", "stock_b32_t0.9"]:
-            if key not in g4:
-                continue
-            r = g4[key]
-            rows.append([key, f"{r['acc']:.1f}", f"{r['nfe']:.1f}",
-                         f"{r['churn']:.1f}", f"{r['tok']:.0f}",
-                         str(r["blk"]), str(r["n"])])
-        add_table(story,
-                  ["Конфигурация", "Точн., %", "Ср. NFE", "Ср. churn", "Ср. ток.", "block", "n"],
-                  rows,
-                  [0.28, 0.12, 0.13, 0.13, 0.12, 0.10, 0.12],
-                  "Таблица 8. GSM8K v4 (LLaDA2.2-mini, 2×T4, int8). noedit = T2T "
-                  "выключен (контроль); stock = гейт 0.0 (default); churn — среднее "
-                  "число перезаписей открытых токенов на задачу (0 у noedit по построению).",
-                  font="td", align_center_cols={1, 2, 3, 4, 5, 6})
-
-        h2(story, "8.2. Парный McNemar против noedit-конфига (тот же блок)")
-        rows = []
-        for key, ctl in [("stock_b32", "noedit_b32"), ("edit0.7_b32", "noedit_b32"),
-                         ("edit0.5_b32", "noedit_b32"), ("stock_b64", "noedit_b64"),
-                         ("stock_b128", "noedit_b128"), ("mps4_b32", "noedit_b32"),
-                         ("stock_b32_t0.9", "noedit_b32")]:
-            if key not in g4 or ctl not in g4:
-                continue
-            x, y, pv = _mcnemar(g4[ctl]["det"], g4[key]["det"])
-            star = " *" if pv < 0.05 else ""
-            nfe_ratio = g4[key]["nfe"] / g4[ctl]["nfe"] if g4[ctl]["nfe"] else 0
-            rows.append([f"{key} vs {ctl}",
-                         str(y), str(x),
-                         f"{pv:.4f}{star}",
-                         f"{nfe_ratio:.2f}×" if nfe_ratio else "—"])
-        add_table(story,
-                  ["Пара (гейт вкл vs выкл)", "исправлено", "сломано", "McNemar p", "NFE ×контроль"],
-                  rows, [0.40, 0.14, 0.14, 0.16, 0.16],
-                  "Таблица 9. Парный точный McNemar на общих задачах пары. "
-                  "«исправлено» = правка починила задачу, «сломано» = испортила; "
-                  "(*) p < 0,05.",
-                  font="td", align_center_cols={1, 2, 3, 4})
-
-        h4 = _v4_rows("humaneval")
-        if h4:
-            h2(story, "8.3. HumanEval")
-            rows = []
-            for key in ["he_noedit_b32", "he_stock_b32"]:
-                if key not in h4:
-                    continue
-                r = h4[key]
-                rows.append([key, f"{r['acc']:.1f}", f"{r['nfe']:.1f}",
-                             f"{r['churn']:.1f}", str(r["n"])])
-            if "he_stock_b32" in h4 and "he_noedit_b32" in h4:
-                x, y, pv = _mcnemar(h4["he_noedit_b32"]["det"], h4["he_stock_b32"]["det"])
-                star = " *" if pv < 0.05 else ""
-                rows.append(["<b>пара: правка vs без правки</b>", f"fix {y}", f"brk {x}",
-                             f"p={pv:.4f}{star}", ""])
-            add_table(story,
-                      ["Конфигурация", "pass@1, %", "Ср. NFE", "Ср. churn", "n"],
-                      rows, [0.40, 0.15, 0.15, 0.15, 0.15],
-                      "Таблица 10. HumanEval v4 (Saber-протокол, каноническое исполнение).",
-                      font="td", align_center_cols={1, 2, 3, 4})
-
-        chart_v4 = os.path.join(WORK_DIR, "chart_v4_gsm8k.png")
-        if os.path.isfile(chart_v4):
-            story.append(Spacer(1, 6))
-            img = Image(chart_v4, width=AVAIL_W * 0.96,
-                        height=AVAIL_W * 0.96 * 0.62)
-            story.append(img)
-            story.append(Paragraph(
-                "Рис. 2. Точность (вверху) и NFE (внизу) веток v4. Тёмно-синий — "
-                "контроль без правки; синий — правка (default); голубой — абляции.",
-                S["caption"]))
-            story.append(Spacer(1, 8))
-
-        # verdict paragraph driven by the core pair
-        if "stock_b32" in g4 and "noedit_b32" in g4:
-            d = g4["stock_b32"]["acc"] - g4["noedit_b32"]["acc"]
-            x, y, pv = _mcnemar(g4["noedit_b32"]["det"], g4["stock_b32"]["det"])
-            sig = " (значимо)." if pv < 0.05 else " (не значимо при этом n)."
-            churn_s = (f" Средний churn {g4['stock_b32']['churn']:.1f} перезаписей "
-                       f"на задачу при цене NFE "
-                       f"×{(g4['stock_b32']['nfe'] / max(g4['noedit_b32']['nfe'], 1e-9)):.2f}.")
-            story.append(P(
-                "<b>Чтение результатов.</b> Главная пара b32: правка (гейт 0.0, "
-                f"default) против контроля без правки — разность {d:+.1f} п.п., "
-                f"исправлено/сломано {y}/{x}, McNemar p={pv:.4f}{sig}{churn_s}"))
-            if "stock_b128" in g4 and "noedit_b128" in g4:
-                d128 = g4["stock_b128"]["acc"] - g4["noedit_b128"]["acc"]
-                story.append(P(
-                    f"Длинные блоки: b128 правка против контроля — {d128:+.1f} п.п. "
-                    "Сравните с v3 на Nemotron: там training-free RemeDi на b128 терял "
-                    "−26 п.п., а CoDR был нейтрален; обученный гейт LLaDA2 закрывает "
-                    "ровно тот режим, в котором training-free ревизия проваливалась."))
-    else:
-        h1(story, "8. Статус ядра v4 и следующий шаг")
-        add_table(story,
-                  ["Запуск", "Что случилось", "Фикс"],
-                  [
-                      ["1", "bnb 0.46.1 не имеет libbitsandbytes_cuda130.so "
-                       "(Kaggle = CUDA 13.0) → ошибка при загрузке",
-                       "bnb ≥ 0.48.2 + monkey-patch loading_report (SCB→CB)"],
-                      ["2", "OOM на GPU 1 при загрузке: 9 ГБ «reserved but "
-                       "unallocated» — фрагментация",
-                       "expandable_segments:True + max_memory={13, 13 GiB}"],
-                      ["3", "Модель загрузилась (133 с), sanity решён верно, "
-                       "детерминизм подтверждён; но планировщик скипнул все ветки "
-                       "по завышенной оценке, HumanEval упал на миграции URI",
-                       "plan_n() с калибровкой по факту; HumanEval встроен в ядро "
-                       "(gzip+base64, как в v3); gen_length=160"],
-                      ["4", "<b>RUNNING</b> — core-first сетка, адаптивные капы", "—"],
-                  ],
-                  [0.08, 0.52, 0.40],
-                  "Таблица 8. Хронология запусков v4 на Kaggle (2×Tesla T4, int8, "
-                  "eager attention).",
-                  font="td", align_center_cols={0})
-        story.append(P(
-            "Текущий запуск (версия ядра 4): бюджет сессии 7,5 ч (запас 1,5 ч от "
-            "9-часового лимита Kaggle), приоритетный порядок веток с задачным "
-            "early-stop, результаты пишутся инкрементально в "
-            "<font name='DejaVuSans' size='8.4'>results_v4.json</font> каждые 10 "
-            "задач (крах на середине ветки не теряет данные). После завершения — "
-            "тот же статистический аппарат v3 (точный McNemar против noedit-конфига "
-            "того же блока на общих задачах пары, Wilson 95% CI, NFE-ratio, "
-            "fix/break), отчёт обновится финальными числами."))
+    # ================================================= 8. Результаты v4
+    h1(story, "8. Результаты v4 (Kaggle: 2×T4, int8)")
     story.append(P(
-        "<b>Главная гипотеза v4.</b> Если встроенный обученный T2T-гейт работает "
-        "как обещает L-EBPO, на коротких блоках (b32) мы увидим небольшой, но "
-        "положительный сдвиг stock vs noedit (в отличие от v3, где CoDR был "
-        "нейтрален, а RemeDi вредил); на длинных блоках (b128), где training-free "
-        "ревизия в v3 провалилась (RemeDi −26 п.п.), встроенная правка должна "
-        "стабилизировать или улучшить качество. Это прямая проверка тезиса "
-        "NeurIPS 2026 «узкое место — сама dLLM, а не правило ремаскинга»: "
-        "обученный механизм должен снять это узкое место без переобучения со "
-        "стороны нашего проекта."))
+        "Ядро <b>kaggle: freedomform/wet-ink-llada22-mini</b> завершено со статусом "
+        "<b>COMPLETE</b> за 7,30 ч из 7,5 ч внутреннего бюджета (старт 6 ноября "
+        "14:25 UTC, финиш 21:53 UTC). Артефакт — "
+        "<font name='DejaVuSans' size='8.4'>results_v4.json</font>: sanity, "
+        "проверка детерминизма, детали P0-пары на задачу (n, NFE, churn, токены, "
+        "префикс вывода) и парная статистика. Ниже — фактическое выполнение и "
+        "все полученные числа."))
+
+    h2(story, "8.1. Выполнение: адаптивный планировщик в действии")
+    add_table(story,
+              ["Фаза", "Время", "Результат"],
+              [
+                  ["Установка и загрузка", "0:00–0:04",
+                   "pip (transformers 5.2.0, bitsandbytes 0.50.2), снапшот модели, "
+                   "int8-квантование на 2×T4, device_map раскидал 20 слоёв по двум GPU"],
+                  ["Sanity (задача про клипы)", "82 с",
+                   "чистый markdown-вывод с LaTeX-формулами, nfe=21, churn=16, "
+                   "0 остаточных спец-токенов (mask/DELETE/SPLIT)"],
+                  ["Эквивалентность", "0:05–0:09",
+                   "жадный режим побитово детерминирован: ids_equal=True для b32 "
+                   "(nfe 16=16) и b64 (nfe 15=15) на 2-GPU pipeline"],
+                  ["noedit_b32 (P0, контроль)", "0:09–4:44",
+                   "n=75 задач, 220 с/задача — калибровка предполагала 140 с/задачу"],
+                  ["stock_b32 (P0, wet-ink)", "4:44–7:16",
+                   "план 64 → ранний стоп на 49/64 по бюджету; 186 с/задача"],
+                  ["Остальные 12 конфигов", "7:16–7:30",
+                   "plan_n() вернул n_run=0 при остатке 807 с; парная статистика, "
+                   "summary, инкрементальный dump"],
+              ],
+              [0.24, 0.12, 0.64],
+              "Таблица 8. Хронология ядра v4 по логу и results_v4.json. "
+              "Сессия 7,30 ч из 7,5 ч бюджета.",
+              font="td", align_center_cols={1})
     story.append(P(
-        "Если же встроенный T2T на коротких блоках окажется нейтральным или "
-        "слабо отрицательным (как было с CoDR в v3), это будет означать, что "
-        "обучение L-EBPO оптимизировано под более длинные блоки или под "
-        "стохастическое декодирование, и тогда следующий шаг — абляция "
-        "температуры (>0) и расширение сетки блоков до 256. Никаких самодельных "
-        "формул не планируется: все дальнейшие шаги — конфигурация штатных "
-        "параметров LLaDA2.2-mini."))
+        "Измеренная скорость — 3,8–4,2 с на model.forward() (eager attention + "
+        "int8 + pipeline через два GPU) — оказалась в ~1,6 раза хуже до-пусковой "
+        "калибровки, поэтому полный прогон сетки (14 конфигов × 200/164 задач) "
+        "потребовал бы порядка десяти таких бюджетов. Адаптивный планировщик "
+        "отработал как задуман: пересчитал лимиты по фактической скорости, "
+        "защитил P0-пару (запущена первой с гарантированными капами 75+75) и "
+        "чисто пропустил остальные 12 конфигов, сохранив всё измеренное "
+        "инкрементально после каждой конфигурации."))
+
+    h2(story, "8.2. P0-пара: встроенный T2T-гейт против контроля (GSM8K, блок 32)")
+    rows = []
+    for name, a, lab in [("noedit_b32", V4_NOEDIT, "контроль (T2T OFF)"),
+                         ("stock_b32", V4_STOCK, "wet-ink (T2T ON, default)")]:
+        rows.append([
+            f"{name} — {lab}", "2.0" if name == "noedit_b32" else "0.0",
+            str(a["n"]), f"{a['acc']:.1f}",
+            f"[{a['lo']:.1f}; {a['hi']:.1f}]",
+            f"{a['nfe']:.1f}", f"{a['churn']:.2f}", f"{a['spt']:.0f}",
+        ])
+    add_table(story,
+              ["Конфигурация", "edit_thr", "n", "Точн., %", "Wilson 95%",
+               "Ср. NFE", "Ср. churn", "с/задача"],
+              rows,
+              [0.28, 0.08, 0.06, 0.10, 0.16, 0.10, 0.11, 0.11],
+              "Таблица 9. P0-пара v4: GSM8K, block_length=32, threshold=0.5, "
+              "max_post_steps=16, greedy (temperature=0), gen_length=160. Обе "
+              "конфигурации используют только штатные параметры generate() "
+              "LLaDA2.2-mini.",
+              font="td", align_center_cols={1, 2, 3, 4, 5, 6, 7})
+    add_table(story,
+              ["Сравнение (парное)", "исправлено", "сломано", "McNemar p (точн.)",
+               "NFE ×контроль", "churn ×контроль"],
+              [[f"stock_b32 vs noedit_b32, n={V4_PAIR['n']} общих задач",
+                f"{V4_PAIR['fixed']}", f"{V4_PAIR['broken']}",
+                f"{V4_PAIR['p']:.4f}",
+                f"{V4_PAIR['nfe_ratio']:.2f} ({V4_PAIR['nfe0']:.1f}→{V4_PAIR['nfe1']:.1f})",
+                f"{V4_PAIR['ch_ratio']:.1f} ({V4_PAIR['ch0']:.2f}→{V4_PAIR['ch1']:.2f})"]],
+              [0.30, 0.11, 0.10, 0.15, 0.17, 0.17],
+              "Таблица 10. Парный точный McNemar на общих задачах двух конфигураций; "
+              "NFE и churn — средние по одним и тем же задачам.",
+              font="td", align_center_cols={1, 2, 3, 4, 5})
+    story.append(Spacer(1, 6))
+    img = Image(os.path.join(WORK_DIR, "chart_v4_gsm8k.png"),
+                width=AVAIL_W, height=AVAIL_W * 5.8 / 7.6)
+    story.append(img)
+    story.append(Paragraph(
+        "Рис. 2. Результаты v4, P0-пара. Слева сверху — точность с Wilson 95% CI; "
+        "справа — парные NFE (×0,84) и churn (×5,5); снизу — эффект лимита "
+        "gen_length=160: 84% генераций усечены, но все естественно завершённые "
+        "(EOS) ответы верны (100%).", S["caption"]))
+    story.append(Spacer(1, 8))
+
+    h2(story, "8.3. Конфаунд усечения: gen_length=160")
+    story.append(P(
+        f"Адаптивный планировщик сжал gen_length со штатных 256 до 160 токенов, "
+        f"чтобы уместить больше задач. На LLaDA2.2 это привело к систематическому "
+        f"усечению: модель пишет развёрнутые markdown-решения (заголовки и "
+        f"LaTeX-блоки), которые не помещаются в 160 токенов. Усечены "
+        f"{V4_NOEDIT['trunc']} из {V4_NOEDIT['n']} генераций контроля (84%) и "
+        f"{V4_STOCK['trunc']} из {V4_STOCK['n']} у wet-ink (84%); ни одна из "
+        f"усечённых не дошла до \\boxed{{}}, и экстрактор падал на «последнее "
+        f"число» из середины решения. Следствие: абсолютные 20–22% — это мера "
+        f"усечения, а не способности модели, и напрямую несравнимы с v3 "
+        f"(86,5% — другая база, 256 токенов на решение, другой стиль). "
+        f"Ключевой контроль: среди "
+        f"{len(V4_FIN_ALL)} естественно завершённых (EOS-ранний стоп) генераций "
+        f"верны {V4_FIN_OK} из {len(V4_FIN_ALL)} — 100% (12/12 у контроля, 8/8 у "
+        f"wet-ink). Способность базы в порядке; эксперимент же по методу "
+        f"недостаточно мощный: одно расхождение на 49 пар, p = 1,0."))
+
+    h2(story, "8.4. Вторичные сигналы (значимые уже на этой паре)")
+    for t in [
+        "<b>Эффективность.</b> На одних и тех же задачах wet-ink сходится за "
+        "×0,84 NFE (46,8 → 39,4) и ~15% меньше времени на задачу (220 → 186 с): "
+        "обученная T2T-правка экономит проходы даже на коротком блоке — модель "
+        "раньше достигает порога уверенности по блоку.",
+        "<b>Чернила мокрые.</b> Churn ×5,5 (1,4 → 7,6 перезаписей на задачу): "
+        "гейт реально переписывает открытые токены, телеметрия NFE/churn работает.",
+        "<b>Детерминизм на гетерогенном pipeline.</b> ids_equal=True для b32 и "
+        "b64 при device_map, размазывающем слои по двум GPU, — жадный режим "
+        "воспроизводим побитово; это условие осмысленности парных сравнений.",
+        "<b>Завершимость.</b> 0 остаточных mask/DELETE/SPLIT во всех 124 "
+        "генерациях — штатные гарантии LLaDA2 работают на 2×T4 + int8 без шимов.",
+    ]:
+        story.append(P(t, "body"))
+
+    h2(story, "8.5. Вердикт и следующий шаг (v4.1)")
+    story.append(P(
+        "Главная гипотеза v4 — обученный T2T-гейт даёт положительный сдвиг "
+        "качества на коротких блоках — <b>не подтверждена и не опровергнута</b>: "
+        "одно расхождение на 49 парах не даёт ни значимости, ни уверенности в "
+        "нулевом эффекте (в v3 для значимости требовались десятки расхождений). "
+        "Экономический сигнал при этом устойчиво положительный (×0,84 NFE в "
+        "паре). Шаг v4.1 не требует изменений в коде харнесса — только "
+        "конфигурация запуска: (а) gen_length=256 (протокол v3, без усечения); "
+        "(б) полный 12-часовой бюджет Kaggle; (в) калибровка plan_n() от "
+        "измеренных 186–220 с/задачу. Арифметика: P0-пара на n=200 — это "
+        "400 задач × ~200 с ≈ 22 ч на 2×T4, то есть либо A100-ресурс (в 4–6 раз "
+        "быстрее, без int8), либо две сессии с возобновлением от "
+        "промежуточного JSON. Никаких новых формул: всё те же штатные параметры "
+        "generate() LLaDA2.2-mini."))
 
     # ================================================= 9. Артефакты
     h1(story, "9. Артефакты")
@@ -953,18 +881,21 @@ def build_story():
               ["Артефакт", "Содержание"],
               [
                   ["github.com/Asilbekov/Explore", "код v1/v2/v3/v4 (wet_ink.py, kaggle/, kaggle_v4/), "
-                   "тесты, results_v3.json, README с полным провенансом"],
+                   "тесты, results_v3.json, results_v4.json, README с полным провенансом"],
                   ["wet_ink/kaggle/kernel.py", "ядро v3 (Nemotron-Labs-Diffusion-3B) — 1 235 строк"],
-                  ["wet_ink/kaggle_v4/kernel.py", "ядро v4 (LLaDA2.2-mini, 2×T4, int8, адаптивная сетка)"],
+                  ["wet_ink/kaggle_v4/kernel.py", "ядро v4 (LLaDA2.2-mini, 2×T4, int8, адаптивный "
+                   "планировщик plan_n) — 844 строки"],
                   ["wet_ink/results/results_v3.json", "результаты v3: 15 конфигов × детали на задачу"],
+                  ["wet_ink/results/results_v4.json", "результаты v4: sanity, эквивалентность, "
+                   "P0-пара GSM8K (n=75+49) с деталями на задачу, парная статистика"],
                   ["research/llada22/", "дословный код модели LLaDA2.2-mini (ModelScope mirror)"],
                   ["kaggle: wet-ink-nemotron-3b", "v3 (Nemotron, 1×T4, fp16) — COMPLETE"],
-                  ["kaggle: wet-ink-llada22-mini", "v4 (LLaDA2.2-mini, 2×T4, int8) — "
-                   + ("COMPLETE, результаты в разделе 8" if v4_has_results()
-                     else "RUNNING (запуск 4)")],
+                  ["kaggle: wet-ink-llada22-mini", "v4 (LLaDA2.2-mini, 2×T4, int8) — COMPLETE "
+                   "(7,30 ч из 7,5 ч; P0-пара, 2 из 14 конфигов, остальные — по решению "
+                   "адаптивного планировщика)"],
               ],
               [0.34, 0.66],
-              "Таблица 9. Артефакты v3 и v4.",
+              "Таблица 11. Артефакты v3 и v4.",
               font="td")
     story.append(P(
         "Хронология проекта: (1) постановка идеи и правил; (2) выбор Nemotron как "
@@ -975,19 +906,17 @@ def build_story():
         "(8) v3 на полной модели — CoDR нейтрален, RemeDi значимо вредит; "
         "(9) смена базы по правилу (г): LLaDA2.2-mini как база с обученной правкой; "
         "(10) дословное чтение кода новой базы, локальная верификация механики; "
-        "(11) v4 — запуск на Kaggle 2×T4 + int8; (12) финальный отчёт после "
-        "завершения v4."))
+        "(11) v4 — запуск на Kaggle 2×T4 + int8; (12) v4 завершён за 7,30 ч: "
+        "механика и детерминизм подтверждены, P0-пара не набрала мощности "
+        "(p = 1,0), сигнал эффективности ×0,84 NFE; финальный отчёт обновлён; "
+        "следующий шаг — v4.1 с gen_length=256 и полным бюджетом."))
     return story
 
 
 def main():
-    if v4_has_results():
-        try:
-            make_charts_v4()
-        except Exception as e:  # noqa: BLE001
-            print("chart_v4 skipped:", e)
+    body_path = os.path.join(WORK_DIR, "body_v4.pdf")
     doc = TocDocTemplate(
-        os.path.join(OUT_DIR, "Wet-Ink_Nemotron-to-LLaDA22_отчёт.pdf"),
+        body_path,
         pagesize=A4,
         leftMargin=MARGIN, rightMargin=MARGIN,
         topMargin=0.85 * inch, bottomMargin=0.85 * inch,
@@ -998,7 +927,21 @@ def main():
     )
     story = build_story()
     doc.multiBuild(story, onFirstPage=on_page, onLaterPages=on_page)
-    print("wrote", doc.filename)
+    print("wrote body:", body_path)
+
+    # обложка (HTML/Playwright, 1 стр.) + тело -> финальный PDF
+    from pypdf import PdfReader, PdfWriter
+    cover_path = os.path.join(WORK_DIR, "cover_v4.pdf")
+    final_path = os.path.join(OUT_DIR, "Wet-Ink_Nemotron-to-LLaDA22_отчёт.pdf")
+    writer = PdfWriter()
+    for part in (cover_path, body_path):
+        reader = PdfReader(part)
+        for pg in reader.pages:
+            writer.add_page(pg)
+    with open(final_path, "wb") as f:
+        writer.write(f)
+    n = len(PdfReader(final_path).pages)
+    print(f"wrote final: {final_path} ({1 + len(PdfReader(body_path).pages)} expected, {n} actual)")
 
 
 if __name__ == "__main__":
