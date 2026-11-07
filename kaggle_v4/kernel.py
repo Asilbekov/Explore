@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Wet-Ink v4 — LLaDA2.2-mini harness on Kaggle (2×Tesla T4, 8-bit, eager attn).
+Wet-Ink v4b — LLaDA2.2-mini harness on Kaggle (2×Tesla T4, 4-bit NF4,
+one model copy per GPU, eager attn).
 
 Project rules (verbatim from the owner):
   (a) study the base model's formulas from primary sources;
@@ -32,9 +33,17 @@ generation parameters (README "Best Practices" + generation_config defaults):
   max_post_steps    ∈ {16 (default), 4}     # post-mask refinement budget
   threshold (M2T)   ∈ {0.5 (README), 0.9 (v3 control)}
   temperature       = 0.0                    # greedy, deterministic
-  gen_length        = 256 (gsm8k) / 256 (humaneval)
+  gen_length        = 160 (gsm8k) / 160 (humaneval)
 
 This is "configuring the base model's own formulas", not adding new ones.
+
+v4b changes vs the v4a int8 run (which completed only 2 of 14 arms —
+throughput-bound at ~140-220 s/task on the 2-GPU int8 pipeline):
+  - int8 -> 4-bit NF4 (double-quant, fp16 compute): the 16.3B MoE drops to
+    ~9.4 GiB weights, so a FULL copy fits on ONE T4;
+  - one model copy per GPU + two worker threads -> ~2x aggregate throughput
+    (plus bnb's 4-bit path dequantizes to fp16 tensor cores on SM75);
+  - same arms, same protocol, same scoring; adaptive caps unchanged.
 
 Output: /kaggle/working/results_v4.json
 """
@@ -48,8 +57,10 @@ import re
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from queue import Empty, Queue
 
 # Mitigate CUDA fragmentation (push-2 OOM'd on GPU 1 with 9 GiB "reserved but
 # unallocated" — classic fragmentation pattern in materialize_copy).
@@ -120,9 +131,12 @@ RESULTS = {
         "cuda": torch.version.cuda,
         "transformers": transformers.__version__,
         "torch": torch.__version__,
-        "quantization": "int8 (bitsandbytes)",
+        "quantization": "int4 NF4 (bitsandbytes, double-quant, fp16 compute)",
         "attn_impl": "eager",
-        "suite": "v4: adaptive-n core-first (gsm8k b32 pair + gate ablation + bonus arms)",
+        "suite": "v4b: 4-bit NF4, 2 workers (one model per GPU), adaptive-n core-first",
+        "v4a_int8_partial": ("int8 2-GPU run finished only noedit_b32 "
+                             "(acc=20.0%, n=75) and stock_b32 (acc=22.4%, "
+                             "n=49); kept as quantization-robustness reference"),
         "rules": "no self-invented formulas; LLaDA2.2 own generate() params only",
         "dropped_from_v3": ["RemeDi (duplicates built-in T2T)",
                             "CoDR (duplicates built-in T2T drift rewrite)"],
@@ -134,13 +148,17 @@ RESULTS = {
     "stats": {},
 }
 EST = {}
+LOCK = threading.RLock()        # guards RESULTS + EST (two worker threads)
+ACTIVE = {"n": 0}               # workers currently consuming the wall clock
+ACT_LOCK = threading.Lock()
 
 
 def dump():
-    tmp = RESULTS_PATH + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(RESULTS, f, indent=1)
-    os.replace(tmp, RESULTS_PATH)
+    with LOCK:
+        tmp = RESULTS_PATH + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(RESULTS, f, indent=1)
+        os.replace(tmp, RESULTS_PATH)
 
 
 def log(*a):
@@ -164,56 +182,86 @@ log("tokenizer ready; eos:", tok.eos_token_id, "| mask:", MASK_ID,
     "| pad:", tok.pad_token_id)
 
 
-def _load():
-    """Load LLaDA2.2-mini in int8 across both T4s (device_map='auto').
+def _load(gpu):
+    """Load LLaDA2.2-mini in 4-bit NF4 onto ONE T4 (whole model, no split).
 
-    - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (env, set above) defeats
-      the fragmentation that caused push-2 OOM.
-    - max_memory leaves 1.5 GiB headroom per GPU for activations + KV cache.
-      Without this, device_map='auto' over-packs one GPU and the 2 MiB
-      materialize_copy of a later layer OOMs.
+    - Why 4-bit (v4b): the int8 run (v4a) needed both GPUs (~17 GiB weights),
+      forcing a 2-GPU pipeline; with bnb's int8 matmul path on SM75 this gave
+      ~3.8-4.2 s per forward (~140-220 s per GSM8K task) and the 7.5 h budget
+      covered only 2 of 14 arms. NF4 storage for the 16.3B MoE is ~8.1 GiB
+      (quantized Linears: 19 MoE layers x 256 experts + attn) + fp16
+      lm_head/word_embeddings (~0.6 GiB each, 157k vocab) + fp32 router ≈
+      ~9.4 GiB total — a FULL copy fits on one 15.8 GiB T4 with ~6 GiB
+      headroom for activations (use_cache=False: diffusion full-forwards).
+    - bnb_4bit_compute_dtype=float16: T4 (SM75) has no bf16 tensor cores.
+    - bnb_4bit_use_double_quant=True: saves ~0.4 GiB on a 16B checkpoint.
+    - llm_int8_skip_modules=["lm_head"]: 157k-vocab output head stays fp16
+      (transformers' own default for bnb; kept explicit).
     - attn_implementation='eager': required — the model builds its block
       attention mask in bfloat16, and SDPA rejects a bf16 mask that does
       not match the query dtype. eager attention promotes the mask to fp32
       via softmax(... dtype=torch.float32), so it accepts any mask dtype.
-    - BitsAndBytesConfig int8: quantizes expert Linear layers (the model's
-      own LLaDA2MoeMLP — ordinary nn.Linear, bnb-compatible). The MoE router
-      is a raw nn.Parameter (not nn.Linear), so bnb leaves it in fp32
-      automatically; no skip list needed.
+    - MoE experts are the model's own LLaDA2MoeMLP — ordinary nn.Linear,
+      bnb-compatible; the router is a raw nn.Parameter (router_dtype fp32),
+      so bnb leaves it unquantized automatically.
+    - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (env, set above)
+      still defeats the fragmentation pattern from the v4 push-2 OOM.
     """
     bnb = BitsAndBytesConfig(
-        load_in_8bit=True,
-        llm_int8_enable_fp32_cpu_offload=False,
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_use_double_quant=True,
         llm_int8_skip_modules=["lm_head"],
     )
-    # 16B int8 ≈ 17 GiB weights + ~1 GiB quant state. With 2×T4 = 29 GiB usable,
-    # ~13 GiB per GPU leaves ~1.5 GiB headroom per GPU for activations/KV.
-    max_memory = {0: "13GiB", 1: "13GiB", "cpu": "32GiB"}
     m = AutoModelForCausalLM.from_pretrained(
         local,
         trust_remote_code=True,
         quantization_config=bnb,
-        device_map="auto",
-        max_memory=max_memory,
+        device_map={"": gpu},
         torch_dtype=torch.float16,
         attn_implementation="eager",
     )
     m.eval()
+    m._nfe_state = dict(nfe=0, prev=None, churn=0, special_residual=0)
     return m
 
 
-log("loading model int8 (this takes ~5-10 min) ...")
+def _attach_meter(model):
+    """Observation-only per-instance NFE/churn counter (does NOT alter
+    generation math). Each worker thread drives its own model instance,
+    so the meter state lives on the model object itself."""
+    st = model._nfe_state
+    _orig_forward = model.forward
+
+    def _wrapped_forward(*a, **k):
+        st["nfe"] += 1
+        ids = a[0] if a else k.get("input_ids")
+        if ids is not None:
+            cur = ids.detach()
+            prev = st["prev"]
+            if prev is not None and prev.shape == cur.shape:
+                changed = (cur != prev) & (prev != MASK_ID)
+                st["churn"] += int(changed.sum().item())
+            st["prev"] = cur.clone()
+        return _orig_forward(*a, **k)
+
+    model.forward = _wrapped_forward
+
+
+log("loading model #0 in 4-bit NF4 on GPU0 (this takes ~5-10 min) ...")
 t0 = time.time()
-model = _load()
-log(f"model loaded in {time.time()-t0:.0f}s")
-RESULTS["meta"]["device_map"] = str(getattr(model, "hf_device_map", "single"))
+M0 = _load(0)
+_attach_meter(M0)
+log(f"model #0 loaded in {time.time()-t0:.0f}s")
+RESULTS["meta"]["device_map"] = str(getattr(M0, "hf_device_map", "single"))
 dump()
 
 # ---------------------------------------------------------------- prompt builders
-def chat_ids(text):
+def chat_ids(text, dev):
     messages = [{"role": "user", "content": text}]
     p = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
-    return tok(p, return_tensors="pt").input_ids.to(model.device)
+    return tok(p, return_tensors="pt").input_ids.to(dev)
 
 
 # ---------------------------------------------------------------- sanity + equivalence
@@ -232,30 +280,10 @@ def _degenerate(text):
     return False
 
 
-# Observation-only NFE/churn counter (does NOT alter generation math).
-_NFE_STATE = dict(nfe=0, prev=None, churn=0, special_residual=0)
-_orig_forward = model.forward
-
-
-def _wrapped_forward(*a, **k):
-    _NFE_STATE["nfe"] += 1
-    ids = a[0] if a else k.get("input_ids")
-    if ids is not None:
-        cur = ids.detach()
-        prev = _NFE_STATE["prev"]
-        if prev is not None and prev.shape == cur.shape:
-            changed = (cur != prev) & (prev != MASK_ID)
-            _NFE_STATE["churn"] += int(changed.sum().item())
-        _NFE_STATE["prev"] = cur.clone()
-    return _orig_forward(*a, **k)
-
-
-model.forward = _wrapped_forward
-
-
-def gen(ids, gen_length=256, block_length=32, threshold=0.5,
+def gen(model, ids, gen_length=256, block_length=32, threshold=0.5,
         editing_threshold=0.0, max_post_steps=16, temperature=0.0):
     """Call the model's OWN generate() with the requested arm config."""
+    _NFE_STATE = model._nfe_state
     _NFE_STATE.update(nfe=0, prev=None, churn=0, special_residual=0)
     out = model.generate(
         inputs=ids,
@@ -280,9 +308,9 @@ def gen(ids, gen_length=256, block_length=32, threshold=0.5,
     return out, nfe, churn, resid
 
 
-ids0 = chat_ids(SANITY)
+ids0 = chat_ids(SANITY, M0.device)
 t0 = time.time()
-out_s, nfe_s, churn_s, resid_s = gen(ids0, gen_length=128, block_length=32,
+out_s, nfe_s, churn_s, resid_s = gen(M0, ids0, gen_length=128, block_length=32,
                                       threshold=0.5, editing_threshold=0.0)
 text_s = tok.decode(out_s[0], skip_special_tokens=True)
 sanity_wall = time.time() - t0
@@ -296,9 +324,9 @@ dump()
 
 log("equivalence: greedy determinism (same config twice -> identical ids)")
 for bl in (32, 64):
-    o1, n1, c1, _ = gen(ids0, gen_length=64, block_length=bl, threshold=0.5,
+    o1, n1, c1, _ = gen(M0, ids0, gen_length=64, block_length=bl, threshold=0.5,
                         editing_threshold=0.0)
-    o2, n2, c2, _ = gen(ids0, gen_length=64, block_length=bl, threshold=0.5,
+    o2, n2, c2, _ = gen(M0, ids0, gen_length=64, block_length=bl, threshold=0.5,
                         editing_threshold=0.0)
     ok = bool(torch.equal(o1, o2)) and n1 == n2
     RESULTS["equivalence"][f"b{bl}"] = dict(ids_equal=ok, nfe1=int(n1), nfe2=int(n2),
@@ -334,21 +362,16 @@ def ok_of(d):
     return bool(v)
 
 
-def fits(bench, family, block, n_tasks):
-    """Legacy gate — kept for compatibility; the arm schedule now uses plan_n()."""
-    return remaining() > 1200
-
-
-# Calibrated from push-3 measurements: ~3.8-4.2 s per model forward on
-# 2×T4 int8 pipeline (eager attn). eos_early_stop cuts most GSM8K tasks at
-# ~4-6 blocks. Initial per-task estimates (recalibrated after each arm from
-# measured wall/total):
+# Calibrated from v4a int8 measurements (~4 s per forward on the 2-GPU
+# pipeline → 140-220 s/task), scaled for 4-bit NF4 on one GPU (fp16 tensor
+# cores, no pipeline) — expect ~2× per-worker speedup. plan_n() recalibrates
+# from each arm's measured wall/total, so these are only priors:
 INIT_EST = {
-    ("gsm8k", 32): 140.0,
-    ("gsm8k", 64): 170.0,
-    ("gsm8k", 128): 210.0,
-    ("humaneval", 32): 300.0,
-    ("humaneval", 64): 360.0,
+    ("gsm8k", 32): 105.0,
+    ("gsm8k", 64): 120.0,
+    ("gsm8k", 128): 140.0,
+    ("humaneval", 32): 180.0,
+    ("humaneval", 64): 220.0,
 }
 
 
@@ -357,13 +380,15 @@ def plan_n(bench, family, block, cap):
 
     Uses the measured per-task time of the same family+block when available
     (arms of the same family share the estimate), else the calibrated prior.
+    The wall clock is consumed by ACTIVE["n"] workers in parallel, so the
+    affordable count is divided by the number of live workers.
     Reserves 900 s for paired stats + summary + final dump.
     """
     per_task = EST.get((bench, family, block)) or INIT_EST.get((bench, block), 250.0)
-    n_aff = int((remaining() - 900) / per_task)
+    n_aff = int((remaining() - 900) / (max(ACTIVE["n"], 1) * per_task))
     n_run = max(0, min(cap, n_aff))
     log(f"plan_n[{bench}/{family}/b{block}]: cap={cap} per_task_est={per_task:.0f}s "
-        f"remaining={remaining():.0f}s -> n_run={n_run}")
+        f"active={ACTIVE['n']} remaining={remaining():.0f}s -> n_run={n_run}")
     return n_run
 
 
@@ -400,26 +425,28 @@ def score_gsm8k(model_out, gold):
 
 
 _DS_GSM = None
+_DS_LOCK = threading.Lock()
 
 
 def get_gsm8k():
     global _DS_GSM
-    if _DS_GSM is None:
-        for repo in ("gsm8k", "openai/gsm8k"):
-            try:
-                _DS_GSM = load_dataset(repo, "main", split="test")
-                break
-            except Exception as e:  # noqa: BLE001
-                log(f"load_dataset({repo}) failed: {e}")
+    with _DS_LOCK:
         if _DS_GSM is None:
-            raise RuntimeError("cannot load GSM8K")
+            for repo in ("gsm8k", "openai/gsm8k"):
+                try:
+                    _DS_GSM = load_dataset(repo, "main", split="test")
+                    break
+                except Exception as e:  # noqa: BLE001
+                    log(f"load_dataset({repo}) failed: {e}")
+            if _DS_GSM is None:
+                raise RuntimeError("cannot load GSM8K")
     return _DS_GSM
 
 
-def run_gsm8k(name, editing_threshold=0.0, block_length=32,
+def run_gsm8k(name, model, editing_threshold=0.0, block_length=32,
               threshold=0.5, max_post_steps=16, gen_length=160, limit=200):
     family = "noedit" if editing_threshold > 1.0 else "edit"
-    if not fits("gsm8k", family, block_length, min(limit, 200)):
+    if remaining() < 900:
         RESULTS["gsm8k"][name] = {"skipped": "time budget"}
         dump()
         return
@@ -440,10 +467,10 @@ def run_gsm8k(name, editing_threshold=0.0, block_length=32,
             break
         row = ds[i]
         gold = row["answer"].split("####")[-1].strip().replace(",", "")
-        ids = chat_ids(INSTRUCTION + row["question"])
+        ids = chat_ids(INSTRUCTION + row["question"], model.device)
         try:
             out, nfe, churn, resid = gen(
-                ids, gen_length=gen_length, block_length=block_length,
+                model, ids, gen_length=gen_length, block_length=block_length,
                 threshold=threshold, editing_threshold=editing_threshold,
                 max_post_steps=max_post_steps,
             )
@@ -462,12 +489,13 @@ def run_gsm8k(name, editing_threshold=0.0, block_length=32,
                                 nfe=int(nfe), churn=int(churn), resid=int(resid),
                                 gold=gold, out_prefix=text[:200]))
             if (i + 1) % 10 == 0:
-                RESULTS["gsm8k"][name] = dict(
-                    editing_threshold=editing_threshold, block_length=block_length,
-                    threshold=threshold, max_post_steps=max_post_steps,
-                    gen_length=gen_length, limit=n, partial=i + 1,
-                    correct=correct, details=details)
-                dump()
+                with LOCK:
+                    RESULTS["gsm8k"][name] = dict(
+                        editing_threshold=editing_threshold, block_length=block_length,
+                        threshold=threshold, max_post_steps=max_post_steps,
+                        gen_length=gen_length, limit=n, partial=i + 1,
+                        correct=correct, details=list(details))
+                    dump()
         except torch.cuda.OutOfMemoryError:
             log(f"  {name}[{i}] OOM -> skipping")
             torch.cuda.empty_cache()
@@ -478,7 +506,8 @@ def run_gsm8k(name, editing_threshold=0.0, block_length=32,
     wall = time.time() - t0
     total = len([d for d in details if "error" not in d])
     if total > 0:
-        EST[("gsm8k", family, block_length)] = wall / total
+        with LOCK:
+            EST[("gsm8k", family, block_length)] = wall / total
     res = dict(
         editing_threshold=editing_threshold, block_length=block_length,
         threshold=threshold, max_post_steps=max_post_steps,
@@ -489,9 +518,10 @@ def run_gsm8k(name, editing_threshold=0.0, block_length=32,
         avg_nfe=tot_nfe / max(total, 1),
         avg_churn=tot_churn / max(total, 1),
         avg_resid=tot_resid / max(total, 1),
-        wall_seconds=wall, details=details,
+        wall_seconds=wall, details=list(details),
     )
-    RESULTS["gsm8k"][name] = res
+    with LOCK:
+        RESULTS["gsm8k"][name] = res
     log(f"== {name}: acc={res['accuracy']:.2f}% n={total} "
         f"avg_tok={res['avg_tokens']:.0f} avg_nfe={res['avg_nfe']:.1f} "
         f"avg_churn={res['avg_churn']:.1f} wall={wall:.0f}s")
@@ -511,14 +541,14 @@ def load_humaneval():
     return [json.loads(line) for line in raw.decode("utf-8").splitlines() if line]
 
 
-def he_prompt_ids(doc):
+def he_prompt_ids(doc, dev):
     """Saber (ACL 2026) prompt protocol, verbatim."""
     user = ("Write a solution to the following problem and make sure that it "
             "passes the tests:\n```python\n" + doc["prompt"] + "\n```")
     trailing = "Here is the completed function:\n```python\n" + doc["prompt"] + "\n"
     messages = [{"role": "user", "content": user}]
     p = tok.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) + trailing
-    return tok(p, return_tensors="pt").input_ids.to(model.device)
+    return tok(p, return_tensors="pt").input_ids.to(dev)
 
 
 def he_extract(gen_text, doc):
@@ -589,7 +619,7 @@ def he_execute(details, docs, timeout=10, workers=8):
     return outcomes
 
 
-def run_humaneval(name, editing_threshold=0.0, block_length=32,
+def run_humaneval(name, model, editing_threshold=0.0, block_length=32,
                   threshold=0.5, max_post_steps=16, gen_length=160, limit=164):
     family = "noedit" if editing_threshold > 1.0 else "edit"
     docs = load_humaneval()
@@ -608,10 +638,10 @@ def run_humaneval(name, editing_threshold=0.0, block_length=32,
         if remaining() < 900 and i > 0:
             log(f"  {name}: task-level early stop at {i}/{n} (time budget)")
             break
-        ids = he_prompt_ids(doc)
+        ids = he_prompt_ids(doc, model.device)
         try:
             out, nfe, churn, resid = gen(
-                ids, gen_length=gen_length, block_length=block_length,
+                model, ids, gen_length=gen_length, block_length=block_length,
                 threshold=threshold, editing_threshold=editing_threshold,
                 max_post_steps=max_post_steps,
             )
@@ -627,12 +657,13 @@ def run_humaneval(name, editing_threshold=0.0, block_length=32,
                                 churn=int(churn), resid=int(resid),
                                 completion=completion[:600], full=gen_text[:300]))
             if (i + 1) % 10 == 0:
-                RESULTS["humaneval"][name] = dict(
-                    editing_threshold=editing_threshold, block_length=block_length,
-                    threshold=threshold, max_post_steps=max_post_steps,
-                    gen_length=gen_length, limit=n, partial=i + 1,
-                    details=details)
-                dump()
+                with LOCK:
+                    RESULTS["humaneval"][name] = dict(
+                        editing_threshold=editing_threshold, block_length=block_length,
+                        threshold=threshold, max_post_steps=max_post_steps,
+                        gen_length=gen_length, limit=n, partial=i + 1,
+                        details=list(details))
+                    dump()
         except torch.cuda.OutOfMemoryError:
             log(f"  {name}[{i}] OOM -> skipping")
             torch.cuda.empty_cache()
@@ -648,7 +679,8 @@ def run_humaneval(name, editing_threshold=0.0, block_length=32,
     passed = sum(1 for d in details if d.get("passed"))
     exec_wall = time.time() - t1
     if total > 0:
-        EST[("humaneval", family, block_length)] = gen_wall / total
+        with LOCK:
+            EST[("humaneval", family, block_length)] = gen_wall / total
     res = dict(
         editing_threshold=editing_threshold, block_length=block_length,
         threshold=threshold, max_post_steps=max_post_steps,
@@ -659,9 +691,10 @@ def run_humaneval(name, editing_threshold=0.0, block_length=32,
         avg_churn=tot_churn / max(total, 1),
         avg_resid=tot_resid / max(total, 1),
         gen_wall_seconds=gen_wall, exec_wall_seconds=exec_wall,
-        details=details,
+        details=list(details),
     )
-    RESULTS["humaneval"][name] = res
+    with LOCK:
+        RESULTS["humaneval"][name] = res
     log(f"== {name}: pass@1={res['pass_at_1']:.2f}% n={total} "
         f"avg_tok={res['avg_tokens']:.0f} avg_nfe={res['avg_nfe']:.1f} "
         f"avg_churn={res['avg_churn']:.1f} gen={gen_wall:.0f}s exec={exec_wall:.0f}s")
@@ -669,78 +702,98 @@ def run_humaneval(name, editing_threshold=0.0, block_length=32,
 
 
 # ---------------------------------------------------------------- run suite
-# Throughput reality (push-3 measurements): ~3.8-4.2 s per model forward on
-# the 2×T4 int8 pipeline → ~130-200 s per GSM8K task. The full v3-style grid
-# (14 arms × 200/164 tasks) would need ~10× the 7.5 h budget. The schedule
-# below is priority-ordered with hard caps; plan_n() trims each arm to what
-# the remaining budget can afford (pair arms are protected: the core pair
-# runs FIRST at caps guaranteed to fit).
+# v4b: two worker threads, one model copy per GPU, pulling arms from a
+# shared priority queue (worker 0 reuses M0; worker 1 loads its own 4-bit
+# copy on GPU 1 — ~9.4 GiB each — while worker 0 already works). plan_n()
+# trims each arm's cap to the SHARED remaining budget divided by the number
+# of live workers, so the two arms of every pair always fit together.
 #
 #   P0 (core, must run):  noedit_b32 vs stock_b32  — does the trained T2T
 #                          gate help? (control = editing_threshold=2.0, i.e.
 #                          T2T OFF; stock = 0.0 = model default)
 #   P1 (gate ablation):   edit0.7_b32, edit0.5_b32
-#   P2 (bonus):           he_noedit_b32 / he_stock_b32 (small n), b64 pair
-#   P3 (bonus):           b128 pair, mps4, t0.9 control
+#   P2:                   he_noedit_b32 / he_stock_b32 (small n), b64 pair
+#   P3:                   mps4, t0.9 control, b128 pair
+ARMS = [
+    # (name, bench, editing_threshold, block, threshold, mps, gen_len, cap)
+    ("noedit_b32",     "gsm8k",     2.0,  32, 0.5, 16, 160, 80),
+    ("stock_b32",      "gsm8k",     0.0,  32, 0.5, 16, 160, 80),
+    ("edit0.7_b32",    "gsm8k",     0.7,  32, 0.5, 16, 160, 60),
+    ("edit0.5_b32",    "gsm8k",     0.5,  32, 0.5, 16, 160, 60),
+    ("he_noedit_b32",  "humaneval", 2.0,  32, 0.5, 16, 160, 40),
+    ("he_stock_b32",   "humaneval", 0.0,  32, 0.5, 16, 160, 40),
+    ("noedit_b64",     "gsm8k",     2.0,  64, 0.5, 16, 160, 50),
+    ("stock_b64",      "gsm8k",     0.0,  64, 0.5, 16, 160, 50),
+    ("mps4_b32",       "gsm8k",     0.0,  32, 0.5,  4, 160, 50),
+    ("stock_b32_t0.9", "gsm8k",     0.0,  32, 0.9, 16, 160, 50),
+    ("noedit_b128",    "gsm8k",     2.0, 128, 0.5, 16, 160, 35),
+    ("stock_b128",     "gsm8k",     0.0, 128, 0.5, 16, 160, 35),
+]
+_QUEUE = Queue()
+for _a in ARMS:
+    _QUEUE.put(_a)
 
-# ---- P0: core pair (protected caps) ----
-n = plan_n("gsm8k", "noedit", 32, cap=75)
-if n >= 15:
-    run_gsm8k("noedit_b32", editing_threshold=2.0, block_length=32,
-              threshold=0.5, limit=n)
-n = plan_n("gsm8k", "edit", 32, cap=75)
-if n >= 15:
-    run_gsm8k("stock_b32", editing_threshold=0.0, block_length=32,
-              threshold=0.5, limit=n)
+RUN_FN = {"gsm8k": run_gsm8k, "humaneval": run_humaneval}
 
-# ---- P1: gate ablation at b32 ----
-n = plan_n("gsm8k", "edit", 32, cap=55)
-if n >= 15:
-    run_gsm8k("edit0.7_b32", editing_threshold=0.7, block_length=32,
-              threshold=0.5, limit=n)
-n = plan_n("gsm8k", "edit", 32, cap=45)
-if n >= 15:
-    run_gsm8k("edit0.5_b32", editing_threshold=0.5, block_length=32,
-              threshold=0.5, limit=n)
 
-# ---- P2: HumanEval pair (small n) and b64 pair ----
-n = plan_n("humaneval", "noedit", 32, cap=30)
-if n >= 12:
-    run_humaneval("he_noedit_b32", editing_threshold=2.0, block_length=32,
-                  threshold=0.5, limit=n)
-n = plan_n("humaneval", "edit", 32, cap=30)
-if n >= 12:
-    run_humaneval("he_stock_b32", editing_threshold=0.0, block_length=32,
-                  threshold=0.5, limit=n)
+def _worker_loop(wid, model):
+    with ACT_LOCK:
+        ACTIVE["n"] += 1
+    try:
+        while remaining() > 900:
+            try:
+                arm = _QUEUE.get_nowait()
+            except Empty:
+                break
+            name, bench, et, bl, thr, mps, gl, cap = arm
+            prev = RESULTS[bench].get(name)
+            if prev and (prev.get("attempted") or 0) > 0 and "error" not in prev:
+                continue  # already done — do not rerun
+            family = "noedit" if et > 1.0 else "edit"
+            n = plan_n(bench, family, bl, cap)
+            if n < 8:
+                with LOCK:
+                    RESULTS[bench][name] = {"skipped": "time budget"}
+                    dump()
+                continue
+            log(f"[w{wid}] arm {name}: n={n} block={bl} edit_thr={et} "
+                f"thr={thr} mps={mps}")
+            try:
+                RUN_FN[bench](name, model, editing_threshold=et, block_length=bl,
+                              threshold=thr, max_post_steps=mps,
+                              gen_length=gl, limit=n)
+            except Exception as e:  # noqa: BLE001
+                log(f"[w{wid}] arm {name} CRASHED: {e!r}")
+                with LOCK:
+                    RESULTS[bench][name] = {"error": str(e)}
+                    dump()
+    finally:
+        with ACT_LOCK:
+            ACTIVE["n"] -= 1
+        log(f"[w{wid}] worker finished (remaining={remaining():.0f}s)")
 
-n = plan_n("gsm8k", "noedit", 64, cap=40)
-if n >= 15:
-    run_gsm8k("noedit_b64", editing_threshold=2.0, block_length=64,
-              threshold=0.5, limit=n)
-n = plan_n("gsm8k", "edit", 64, cap=40)
-if n >= 15:
-    run_gsm8k("stock_b64", editing_threshold=0.0, block_length=64,
-              threshold=0.5, limit=n)
 
-# ---- P3: bonus arms (run only if budget remains) ----
-n = plan_n("gsm8k", "noedit", 128, cap=30)
-if n >= 12:
-    run_gsm8k("noedit_b128", editing_threshold=2.0, block_length=128,
-              threshold=0.5, limit=n)
-n = plan_n("gsm8k", "edit", 128, cap=30)
-if n >= 12:
-    run_gsm8k("stock_b128", editing_threshold=0.0, block_length=128,
-              threshold=0.5, limit=n)
+def _worker_main(wid):
+    if wid == 0:
+        _worker_loop(0, M0)
+        return
+    log("[w1] loading model #1 in 4-bit NF4 on GPU1 ...")
+    t0 = time.time()
+    try:
+        m1 = _load(1)
+        _attach_meter(m1)
+        log(f"[w1] model #1 loaded in {time.time()-t0:.0f}s")
+    except Exception as e:  # noqa: BLE001
+        log(f"[w1] model #1 load FAILED: {e!r} -> single-worker mode")
+        return
+    _worker_loop(1, m1)
 
-n = plan_n("gsm8k", "edit", 32, cap=40)
-if n >= 12:
-    run_gsm8k("mps4_b32", editing_threshold=0.0, block_length=32,
-              threshold=0.5, max_post_steps=4, limit=n)
 
-n = plan_n("gsm8k", "edit", 32, cap=40)
-if n >= 12:
-    run_gsm8k("stock_b32_t0.9", editing_threshold=0.0, block_length=32,
-              threshold=0.9, limit=n)
+_THREADS = [threading.Thread(target=_worker_main, args=(i,)) for i in range(2)]
+for _t in _THREADS:
+    _t.start()
+for _t in _THREADS:
+    _t.join()
 
 
 # ---------------------------------------------------------------- paired stats
@@ -779,7 +832,7 @@ def paired_stats(bench):
     arms = RESULTS[bench]
     stocks = {}
     for name, r in arms.items():
-        if "skipped" in r or "details" not in r:
+        if "skipped" in r or "error" in r or "details" not in r:
             continue
         if name.startswith("noedit") or name.startswith("he_noedit"):
             stocks.setdefault(r["block_length"], (name, r))
@@ -787,7 +840,7 @@ def paired_stats(bench):
     for name, r in arms.items():
         if r.get("editing_threshold", 0.0) > 1.0:
             continue
-        if "details" not in r:
+        if "skipped" in r or "error" in r or "details" not in r:
             continue
         bl = r["block_length"]
         if bl not in stocks:
@@ -820,12 +873,15 @@ paired_stats("gsm8k")
 paired_stats("humaneval")
 
 # ---------------------------------------------------------------- summary
-log("=========== SUMMARY v4 ===========")
+log("=========== SUMMARY v4b ===========")
 for bench, metric in (("gsm8k", "accuracy"), ("humaneval", "pass_at_1")):
     log(f"--- {bench} ---")
     for name, r in RESULTS[bench].items():
         if "skipped" in r:
             log(f"{name:<24} SKIPPED")
+            continue
+        if "error" in r:
+            log(f"{name:<24} ERROR: {str(r['error'])[:90]}")
             continue
         wall = r.get("wall_seconds", r.get("gen_wall_seconds", 0))
         log(f"{name:<24} {metric}={r[metric]:6.2f}%  n={r['attempted']:>3} "
