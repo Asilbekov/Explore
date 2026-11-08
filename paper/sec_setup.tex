@@ -1,0 +1,46 @@
+% ===================== 4. Experimental Setup =====================
+\section{Experimental Setup}\label{sec:setup}
+
+\paragraph{Model and hardware.}
+All experiments use \texttt{inclusionAI/LLaDA2.2-mini} (16B-parameter MoE, 1.4B
+active, Apache-2.0) \citep{llada22mini} loaded with
+\texttt{trust\_remote\_code=True}, quantized to 4-bit NF4 (bitsandbytes,
+double-quantization, fp16 compute) with eager attention~--- SDPA rejects the bf16
+editing mask; eager promotes it to fp32, which is the model's own attention path.
+The kernel ran on Kaggle with two Tesla T4 GPUs, one full copy of the model per
+GPU and two independent workers behind a priority queue with an adaptive
+per-benchmark scheduler (\texttt{plan\_n}) that allocates the remaining time
+budget. Stack: torch 2.11.0+cu130, transformers 5.2.0, CUDA 13.0.
+
+\paragraph{Protocol.}
+We evaluate on the first 45 GSM8K test tasks (fixed indices), 4-shot prompting as
+in the base model's documentation, greedy decoding ($T{=}0$),
+\texttt{gen\_length}$\,{=}\,$160, \texttt{block\_length}$\,{=}\,$32,
+\texttt{max\_post\_steps}$\,{=}\,$4, and report exact-match accuracy on the final
+numeric answer. Arms: \textbf{wetink\_w16} (the method, $W{=}16$),
+\textbf{wetink\_noedit\_w16} (frontier-only control: $W$ positions stay visible
+but the editing gate is disabled), and \textbf{wetink\_w8} (narrow window). Every
+generation records token-level telemetry: forward passes (NFE), opened tokens,
+actual rewrites, churn, and residual special tokens.
+
+\paragraph{Paired baselines.}
+The stock baselines (\textbf{stock\_b32}: the model's own \texttt{generate()} with
+stock thresholds; \textbf{noedit\_b32}: same with editing disabled) come from a
+completed earlier run of ours on the same model, the same quantization, the same
+prompts, the same generation length, and the same task indices, which makes every
+comparison paired by task index. We report exact McNemar tests on the paired
+outcomes, Wilson 95\% confidence intervals for each arm, and NFE ratios computed
+on the common task subset. No baseline number in this paper comes from an
+unpaired or differently-configured run.
+
+\paragraph{Budget honesty.}
+The kernel ran for 6\,h\,04\,m of a 7.5\,h budget and produced 77 generations
+across three arms ($n{=}45$, $22$, $10$). Two planned arms~--- the $W{=}32$ window
+and HumanEval~--- were skipped by the scheduler because the budget was exhausted
+($n_{\mathrm{run}}{=}5 < 8$, logged as \emph{skipped: time budget}); we report
+this rather than silently omitting the arms. The frontier-only control stopped
+after the first 22 tasks for the same reason, a fact that matters for the analysis
+of Section~\ref{sec:artifact}. A truncation confound applies to all arms equally:
+at \texttt{gen\_length}$\,{=}\,$160, most generations are cut before the model
+finishes; in the v4 audit, among the naturally EOS-terminated generations 96\%
+were answered correctly, so absolute accuracies here underestimate the model.

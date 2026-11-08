@@ -1,0 +1,62 @@
+% ===================== 6. Discussion =====================
+\section{Discussion}\label{sec:discussion}
+
+\paragraph{Why is the trained gate inert here?}
+The T2T gate of LLaDA2.2 was trained, via L-EBPO, in a regime where editing
+happens \emph{inside} the current block while parallel denoising is still
+resolving it~--- its rewrites correct early sampling noise within a block that is
+still being written. Our schedule relocates those rewrites to a window behind a
+one-token frontier, a distribution the gate was never trained on; the model's
+confidences behind the frontier are apparently already well calibrated~--- the
+gate fires (6.9 rewrites per task) but its rewrites are almost always
+confidence-neutral polish, not error repair. The result echoes the diagnosis of
+\citet{remeval}: the bottleneck is the dLLM's ability to \emph{detect} its own
+mistakes, not the schedule through which revisions are applied. A gate trained
+with a sliding window~--- or any trained mistake detector~--- is the natural next
+experiment, and our kernel is ready to host it.
+
+\paragraph{What the negative result buys.}
+First, a clean baseline: any future claim that sliding-window revision helps a
+LLaDA2-class model must now beat an honestly-paired null, and our segment analysis
+(Section~\ref{sec:artifact}) gives reviewers a concrete failure mode~--- unequal
+arm coverage~--- to check for. Second, a cost bound: the revision opportunity is
+available at a predictable $\times 4.88$ NFE, and a $k$-token frontier would
+divide that multiplier by $k$ without touching a single formula; if a future
+trained gate does help, the engineering path to it is already cheap. Third, the
+zero-invention methodology itself: every component of our decoder is verbatim
+model code with runtime equivalence checks, which is what made the null result
+interpretable rather than confounded by an accidental model change.
+
+% ===================== 7. Limitations =====================
+\section{Limitations}\label{sec:limitations}
+
+Our conclusions are bounded by four constraints. (i) \emph{Sample size}: the main
+arm has $n{=}45$ and the control $n{=}22$; Wilson intervals span $\pm 12$ points,
+so we can exclude large effects but not effects of a few points; detecting a
+$\pm 5$-point effect would require $n \geq 500$ per arm. (ii) \emph{One model,
+one benchmark, one regime}: results are for LLaDA2.2-mini at 4-bit quantization
+on GSM8K with greedy decoding and a 160-token cap that truncates most
+generations; the HumanEval arm was skipped by the time budget. (iii)
+\emph{Window sizes}: only $W{=}16$ (main) and $W{=}8$ (ablation, $n{=}10$) ran;
+$W{=}32$ was not reached. (iv) \emph{Ablation identity}: the frontier-only
+control differs from the wet-ink arm by the editing gate alone, but the wet-ink
+family as a whole differs from stock decoding by the schedule; we disentangle
+schedule cost (NFE) from editing effect (outcome flips), not the joint
+interaction with sampling temperature, which we fixed at zero.
+
+% ===================== 8. Conclusion =====================
+\section{Conclusion}\label{sec:conclusion}
+
+We implemented wet-ink decoding~--- a one-token left-to-right frontier with a
+sliding window of revisable tokens and a hard dry edge~--- for a modern diffusion
+language model, under a zero-invention policy in which every mechanism is the
+base model's own trained code. Under a paired exact protocol the method preserves
+the stock decoder's accuracy arm for arm (McNemar $p{=}1.0$ everywhere), its
+apparent advantage over an internal control dissolves into a task-composition
+artifact, and its cost is a predictable $\times 4.88$ NFE. Together with the four
+earlier versions of this program, the evidence indicates that inference-time
+token revision, by any rule so far published, does not improve a fixed diffusion
+language model in the greedy, short-block regime; revision that helps will likely
+have to be trained. Code, data, full telemetry, and the reproduction kernel are
+public.\footnote{\url{https://github.com/Asilbekov/Explore} and
+\url{https://huggingface.co/Freedomform/wet-ink-v5}}

@@ -1,0 +1,127 @@
+% ===================== 3. Method =====================
+\section{The Wet-Ink Decoder}\label{sec:method}
+
+\subsection{Stock block decoding of LLaDA2.2-mini}
+Let $x \in \mathcal{V}^{B}$ be the current block of $B$ positions, some of them
+open (decoded) and some \texttt{[MASK]}ed. One stock denoising step computes, for
+every position $i$, a categorical $p(\cdot \mid x)$ over the vocabulary, the greedy
+prediction $x_0(i) = \arg\max_v p(v \mid x)$, and its confidence
+$p_0(i) = p\!\left(x_0(i) \mid x\right)$. A per-step token budget
+$n_t$ (the even-split \emph{transfer schedule} with the remainder assigned to
+early steps) determines how many masks may open: candidates are ranked by
+confidence, and a mask opens if it is within the budget and its confidence exceeds
+the threshold $\tau$. After all masks of the block are resolved, a post-phase of up
+to $S$ further steps may \emph{edit} open tokens of the same block through the
+trained T2T gate
+\begin{equation}\label{eq:t2t}
+\mathrm{edit}(i) \;=\; \mathbb{1}\!\left[\, p_0(i) > \tau_e \,\wedge\, x_i \neq x_0(i) \,\right],
+\end{equation}
+combined with trained \texttt{SPLIT}/\texttt{DELETE} operations, an anti-loop
+resampler, and residual special-token suppression; then the block freezes forever.
+Attention within the block uses the model's block-diagonal mask; blocks attend to
+all previous (frozen) blocks causally. Editing is thus confined to the current
+block: there is no mechanism, in any configuration of the stock parameters, for a
+later block to repair an earlier one.
+
+\subsection{The wet-ink schedule}
+Wet-ink decoding keeps every one of these primitives and changes only the
+schedule: which position opens, and which positions stay revisable, at each step.
+
+\paragraph{Frontier.}
+Within the current block, define the frontier $f$ as the number of leading
+positions already committed. Each denoising step opens \emph{exactly one} token ---
+the leftmost remaining mask~--- and commits it greedily
+($T{=}0$, deterministic):
+\begin{equation}\label{eq:frontier}
+x_f \leftarrow x_0(f), \qquad f \leftarrow f + 1 .
+\end{equation}
+Progress is guaranteed by construction: each step removes exactly one mask, so the
+block resolves in exactly $B$ steps~--- no step limit is ever reached, and the
+churn explosions of our v1 (Section~\ref{sec:journey}) cannot occur. This is the
+one-token-per-step, left-to-right end of the ordering spectrum of
+\citet{setdiffusion}.
+
+\paragraph{Wet window and hard dry edge.}
+Behind the frontier, the $W$ most recent positions stay revisable through the
+stock gate of Equation~\eqref{eq:t2t}. Formally, we override the model's editing
+confidence field with a windowed version,
+\begin{equation}\label{eq:window}
+\tilde{p}_0(i) \;=\;
+\begin{cases}
+p_0(i), & f - W \leq i < f \quad \text{(wet)}\\[2pt]
+-\infty, & \text{otherwise} \quad \text{(dry)}
+\end{cases}
+\end{equation}
+and run the unmodified gate $\mathbb{1}[\tilde{p}_0(i) > \tau_e \wedge x_i \neq
+x_0(i)]$. The window is clipped to the current block, matching the model's
+block-diagonal attention. Positions that leave the window are frozen forever ---
+the ink dries with distance from the frontier, which is the entire content of the
+wet-ink idea.
+
+\paragraph{Post-phase.}
+Once all masks of the block are resolved, up to $S{=}4$ further steps keep the
+last $W$ positions wet (the drying tail), reusing the stock post-phase machinery
+with a smaller budget; then the block freezes with stock semantics. Blocks attend
+to previous blocks exactly as in stock decoding, and the KV cache of frozen blocks
+is reused verbatim.
+
+Algorithm~\ref{alg:wetink} states the full loop; Figure~\ref{fig:method}
+illustrates a snapshot.
+
+\begin{algorithm}[t]
+\SetAlFnt{\small}
+\caption{Wet-ink decoding of one block ($B$ positions, window $W$)}\label{alg:wetink}
+\KwIn{prompt context, block length $B$, window $W \leq B$, edit threshold $\tau_e$,
+      post steps $S$}
+\KwOut{decoded block (frozen at return)}
+$f \gets 0$ \tcp*{frontier: committed prefix length}
+\While{$f < B$}{
+  forward pass (stock block-diagonal attention)\;
+  commit $x_f \gets x_0(f)$ greedily;\; $f \gets f+1$ \tcp*{one token per step}
+  \ForEach(\tcp*[f]{wet window, verbatim T2T gate}){$i \in [\max(f{-}W,0),\, f)$}{
+    \If{$p_0(i) > \tau_e$ \textbf{ and } $x_i \neq x_0(i)$}{
+      $x_i \gets x_0(i)$ \tcp*{rewrite while wet}
+    }
+  }
+  apply trained \texttt{SPLIT}/\texttt{DELETE} ops and anti-loop resampler
+  (stock code)\;
+}
+\For{$s = 1$ \KwTo $S$}{
+  drying-tail steps: last $W$ positions remain wet (stock post-phase,
+  budget $S$)\;
+}
+\Return{block tokens} \tcp*{block freezes; next block starts}
+\end{algorithm}
+
+\subsection{Zero-invention policy and provenance}
+The method was built under a self-imposed rule: \emph{no new formulas and no
+modifications of published ones}. Table~\ref{tab:provenance} lists every component
+and its verbatim source in the base model. The only new object is the schedule of
+Equations~\eqref{eq:frontier}--\eqref{eq:window}~--- which positions open and which
+stay wet per step~--- which the block-diffusion literature identifies as a free
+inference-time variable rather than a model change
+\citep{bd3lm,setdiffusion}. The compatibility argument is that every primitive
+operates exactly as trained: the frontier feeds the model's own greedy sampler, the
+window gate is the model's own trained gate evaluated on the model's own
+confidences, and the attention pattern is untouched. Two safeguards verify this at
+runtime: with $W{=}0$ the decoder is bit-identical to an appropriately configured
+stock decode (verified on the full model, \texttt{ids\_equal=True}), and a
+residual-token detector asserts zero leaked special tokens in every generation.
+
+\begin{table}[t]
+\centering\small
+\caption{Provenance: every mechanism is reused verbatim from the base model;
+the schedule is the only new component.}\label{tab:provenance}
+\begin{tabularx}{\textwidth}{lX}
+\toprule
+Component & Verbatim source (LLaDA2.2-mini) \\
+\midrule
+Greedy commit $x_0$, confidence $p_0$ & stock \texttt{generate()} sampling step \\
+T2T editing gate, Eq.~\eqref{eq:t2t} & \texttt{\_joint\_decode\_block} (L-EBPO trained) \\
+\texttt{SPLIT}/\texttt{DELETE} edit ops & \texttt{\_apply\_edit\_operations\_with\_tracking} \\
+Anti-loop resampler & stock \texttt{\_resample\_to\_escape\_loop} \\
+Block-diagonal attention, KV-crop & stock \texttt{generate()} / cache utilities \\
+Frontier + wet window (new) & this work: schedule only \\
+\bottomrule
+\end{tabularx}
+\end{table}

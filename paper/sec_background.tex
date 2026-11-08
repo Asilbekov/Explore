@@ -1,0 +1,57 @@
+% ===================== 2. Background and Related Work =====================
+\section{Background and Related Work}\label{sec:background}
+
+\subsection{Masked diffusion language models and block decoding}
+Masked dLLMs such as LLaDA \citep{llada} and Dream 7B \citep{dream7b} generate by
+iteratively denoising a span of \texttt{[MASK]} tokens. The standard inference
+implementation is \emph{block decoding}: the response of length $L$ is split into
+blocks of $B$ tokens (typically $B{=}32$); within a block, each denoising step
+predicts all positions at once, a transfer schedule allocates how many tokens each
+step may commit, a confidence threshold governs which candidates are accepted, and
+once the block's masks are resolved the block is frozen forever~--- its tokens are
+never revisited. LLaDA2.2-mini \citep{llada22mini} augments this pipeline with
+\emph{Levenshtein editing} \citep{llada21,levt}: trained \texttt{DELETE} and
+\texttt{SPLIT} operations, an anti-loop resampler, and a token-to-token (T2T)
+editing gate that may replace a previously opened token with a new prediction when
+the model is confident and the prediction differs. The editing window of the stock
+implementation is the \emph{current block only}: when a block closes, its ink dries
+at once, and no later block can repair it. Our starting question was whether a
+window that \emph{slides} behind a moving frontier~--- wet ink that dries gradually
+rather than blockwise~--- changes anything.
+
+\subsection{The autoregression--diffusion interpolation spectrum}
+That the ordering and granularity of token commits are free inference-time
+variables, not model properties, is the central insight of the block-diffusion
+line of work. BD3-LM \citep{bd3lm} trains block-AR discrete diffusion models in
+which block sizes trade parallelism against conditioning; Set Diffusion
+\citep{setdiffusion} goes further and interpolates \emph{token orderings} between
+fully parallel (diffusion) and fully left-to-right (autoregressive) decoding at
+inference time, reporting favorable speed--quality trade-offs. Our frontier~--- one
+token per step, strictly left-to-right~--- is exactly the autoregressive end of
+this spectrum, composed with the stock denoising machinery of a fixed trained
+model. Related efficiency work optimizes the sampling schedule \citep{jys},
+decodes adaptively in parallel \citep{apd}, or caches attention across steps
+\citep{fastdllm}; all are orthogonal to token revisability, which is our subject.
+
+\subsection{Token revision and remasking}
+Revising opened tokens is a recognized open problem. RemeDi \citep{remedi}
+\emph{trains} a remask-aware model whose per-token confidence decides which open
+tokens to re-mask each step; its inference code re-masks cumulatively top-$k$
+scored positions. A family of \emph{training-free} rules adapts the same idea to
+fixed models: WINO, Saber \citep{saber}, and COVER re-mask low-confidence open
+tokens under various budgets; CoDR \citep{codr} masks a partition of the window,
+measures the confidence drift of the remaining tokens, and re-masks on drift.
+Self-correcting masked diffusion \citep{proseco} learns a corrector module.
+The recent calibration study of \citet{remeval} is the most direct precedent for
+our skepticism: under greedy decoding and short blocks, all three training-free
+remasking rules they test perform on par with confidence-based unmasking alone,
+and their analyses locate the bottleneck in the dLLM itself, suggesting that
+effective revision may require changes to \emph{training}, not merely to inference.
+
+Our program engaged this literature sequentially before building the v5 decoder
+reported here: v2--v3 ported RemeDi's and CoDR's published cycles verbatim to
+Nemotron-Labs-Diffusion-3B and found them neutral (CoDR) to significantly harmful
+(RemeDi, $-19.5$ to $-31.5$ points on GSM8K/HumanEval, $p<0.001$), exactly the
+flip-flop behavior predicted by \citet{remeval}; v4 audited the stock editing
+parameters of LLaDA2.2-mini; v5 finally gave the trained editing gate the sliding
+window it never had. The full lineage is summarized in Section~\ref{sec:journey}.

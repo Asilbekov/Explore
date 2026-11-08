@@ -234,7 +234,9 @@ transfer schedule. → v5: собственный цикл декодирова�
 **Опубликовано:** карточка-статья и все артефакты —
 [🤗 Freedomform/wet-ink-v5](https://huggingface.co/Freedomform/wet-ink-v5),
 интерактивная демо —
-[🤗 Space Freedomform/wet-ink](https://huggingface.co/spaces/Freedomform/wet-ink).
+[🤗 Space Freedomform/wet-ink](https://huggingface.co/spaces/Freedomform/wet-ink),
+**paper-preprint** (арXiv-готовый, LaTeX) —
+[`paper/wet-ink-paper.pdf`](paper/wet-ink-paper.pdf).
 
 Ядро `kaggle_v5/kernel.py` (1 153 строки) — первый собственный цикл
 декодирования в проекте, целиком из штатных формул модели (правило (г)
@@ -330,6 +332,12 @@ kaggle_v4/
 kaggle_v5/
   kernel.py                 # ядро v5: собственный wet-ink декодер (фронтир 1 токен/шаг + окно W)
   kernel-metadata.json
+paper/                            # paper-preprint (арXiv-готовый): Introduction, Method,
+  paper.tex                       #   Setup, Results (paired McNemar), Discussion; bibliography
+  sec_*.tex                       #   секции; компиляция: tectonic paper.tex
+  fig_method.py                   #   генератор рисунка метода
+  fig_method.png, fig_results.png #   рисунки статьи
+  wet-ink-paper.pdf               #   собранный PDF (10 стр.)
 results/
   results.json              # прогон v1 (T4, fp16)
   results_v2.json           # прогон v2 (T4, fp16)

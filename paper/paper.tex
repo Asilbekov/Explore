@@ -1,0 +1,263 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext,newtxmath}   % Times-like text and math
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{amsmath}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{xcolor}
+\usepackage{geometry}
+\geometry{a4paper, top=2.6cm, bottom=2.6cm, left=2.6cm, right=2.6cm}
+
+\definecolor{linkblue}{HTML}{1a4a7a}
+\usepackage[colorlinks=true, linkcolor=linkblue, citecolor=linkblue,
+            urlcolor=linkblue, bookmarks=true]{hyperref}
+
+\widowpenalty=10000
+\clubpenalty=10000
+
+\hypersetup{
+  pdftitle={Wet-Ink: Sliding-Window Frontier Decoding for Diffusion Language Models},
+  pdfauthor={Ozodbek Asilbekov},
+  pdfsubject={Diffusion language models; decoding strategies; inference-time token revision},
+  pdfkeywords={diffusion language models, decoding, token editing, LLaDA, wet-ink}
+}
+
+\setlength{\parskip}{0pt}
+
+\begin{document}
+
+% ===================== Title block =====================
+\begin{center}
+  {\LARGE\bfseries Wet-Ink: Sliding-Window Frontier Decoding\\[0.35em]
+  for Diffusion Language Models\par}
+  \vspace{1.4em}
+  {\large Ozodbek Asilbekov\par}
+  \vspace{0.35em}
+  {\normalsize Independent Researcher (Freedomform)\par}
+  \vspace{0.35em}
+  {\small November 2026\par}
+\end{center}
+
+\vspace{0.9em}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.4em}
+
+\begin{center}\begin{minipage}{0.9\textwidth}
+\textbf{Abstract.}
+Diffusion language models (dLLMs) generate tokens with parallel denoising passes over
+blocks of masks, and every published block decoder commits a whole block before moving on:
+once a block closes, its tokens are frozen. We study \emph{wet-ink decoding}, an
+inference-time schedule in which a diffusion \emph{frontier} opens tokens strictly
+left-to-right, exactly one per denoising step, while a \emph{sliding window} of $W$
+tokens behind the frontier remains revisable through the base model's own trained
+token-to-token (T2T) editing gate; at distance $W$ the ink \emph{dries} and a token is
+never touched again. The method is implemented on LLaDA2.2-mini
+(16B MoE, 1.4B active) under a strict zero-invention policy: every mechanism~--- the
+greedy frontier commit, the trained gate $p_0>\tau_e \wedge x_i \neq x_0$, SPLIT/DELETE
+edit operations, the anti-loop resampler, and block-diagonal attention~--- is reused
+verbatim from the base model, and the decoding schedule is the only new variable, which
+block-diffusion theory identifies as a legitimate free inference-time choice.
+On GSM8K under a paired exact protocol (identical model, 4-bit quantization, prompts,
+and task indices), wet-ink decoding matches the stock parallel decoder on every arm:
+11/45 versus 11/45 against the stock baseline (McNemar $p=1.0$) and zero outcome flips
+against a frontier-only control across 22 common tasks, although the editing gate fires
+6.9 times per task. The apparent $+10.8$-point accuracy gap over the internal control is
+a task-composition artifact, which we expose with a segment analysis. The cost is
+structural: $\times 4.88$ network-function evaluations. We report this as a controlled
+negative result, the third consecutive one in our five-version program, and discuss what
+it implies for inference-time token revision in diffusion language models.
+\end{minipage}\end{center}
+
+\vspace{0.4em}
+\noindent\rule{\textwidth}{0.5pt}
+\vspace{0.8em}
+
+% ===================== 1. Introduction =====================
+\section{Introduction}\label{sec:intro}
+
+Autoregressive language models commit each token exactly once, in a fixed left-to-right
+order. Diffusion language models (dLLMs) relax both constraints: they denoise all
+positions of a block in parallel and may rewrite any still-masked position at any step
+\citep{llada,dream7b,llada22mini}. The relaxation buys parallelism and controllability
+but discards a property that writers of prose take for granted: the ability to
+\emph{commit} early text while keeping a bounded amount of recent text correctable. A
+human writer does not re-plan the first sentence of every paragraph; nor do they freeze
+each word the instant it is written. The leading edge of the text is wet; old ink dries.
+
+We call the decoding schedule that formalizes this intuition \emph{wet-ink decoding}
+(Figure~\ref{fig:method}). A one-token \emph{frontier} opens the leftmost remaining
+mask at every denoising step, committing it autoregressively; a \emph{wet window} of
+$W$ positions behind the frontier stays revisable; at distance $W$ there is a
+\emph{hard dry edge} beyond which tokens are frozen forever. The frontier is the
+one-token-per-step end of the published autoregression--diffusion interpolation
+spectrum \citep{bd3lm,setdiffusion}; the wet window is realized not by a new
+confidence heuristic but by the base model's own \emph{trained} T2T editing gate from
+LLaDA2.2's Levenshtein editing machinery \citep{llada22mini,llada21}, windowed in time.
+
+Two design commitments distinguish this work from prior attempts at token revision in
+dLLMs. First, a \emph{zero-invention policy}: no new formulas and no modifications of
+published ones; every primitive is taken verbatim from the base model's code, with
+line-level provenance, and the only new object is the schedule that orders the
+application of these primitives. Block diffusion theory makes this position precise:
+tokens-per-step and position orderings are free inference-time variables, not model
+changes \citep{bd3lm,setdiffusion}. Second, an \emph{adversarial evaluation protocol}:
+paired task indices, exact McNemar tests, Wilson intervals, and network-function-evaluation
+(NFE) accounting on every arm, so that neither task sampling nor compute asymmetries
+can masquerade as an effect.
+
+The empirical outcome is unambiguous and, we argue, worth publishing as such. On GSM8K
+with LLaDA2.2-mini, wet-ink decoding is \emph{pair-identical} to the stock parallel
+decoder: against the stock baseline the score is 11/45 versus 11/45 (2 outcomes fixed,
+2 broken, exact McNemar $p=1.0$); against a frontier-only control that disables window
+editing, not a single one of 22 common tasks flips, although the trained gate genuinely
+fires 6.9 times per task. The price is structural: $\times 4.88$ NFE, because committing
+one token per step forfeits the parallelism of block decoding. A visible $+10.8$-point
+raw gap over the internal control turns out to be a task-composition artifact~--- the
+control arm stopped early on the hardest segment of the benchmark~--- which we
+demonstrate explicitly (Section~\ref{sec:artifact}).
+
+This paper is the fifth iteration of a research program that treats the wet-ink idea as
+a hypothesis to be attacked rather than demonstrated. Versions 1--3 tested
+training-free revision rules on Nemotron-Labs-Diffusion-3B and found them neutral to
+harmful; version 4 audited the stock decoding parameters of LLaDA2.2-mini; version 5,
+reported here, is the first implementation of the idea as an actual decoder
+(Section~\ref{sec:journey}). The program thus yields three independent, paired,
+consistently null results on the same hypothesis family, which is exactly the evidence
+the community currently lacks about inference-time token revision in dLLMs
+\citep{remeval}.
+
+Our contributions are:
+\begin{itemize}\itemsep2pt
+  \item \textbf{A wet-ink decoder} for LLaDA2.2-mini: a one-token left-to-right
+        frontier with a sliding window of $W$ revisable tokens, a hard dry edge, built
+        exclusively from the base model's own trained mechanisms under a
+        zero-invention policy with full provenance.
+  \item \textbf{A paired evaluation protocol} for decoding schedules: exact McNemar
+        tests on common task indices, Wilson intervals, NFE accounting, and
+        task-composition controls.
+  \item \textbf{A controlled negative result}: the trained editing gate, given a
+        sliding window and an honest budget, does not move task accuracy on GSM8K ---
+        with a segment-level analysis showing why raw gaps in small-$n$ benchmark runs
+        can be pure composition artifacts.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig_method.png}
+  \caption{\textbf{Wet-ink decoding.} Each denoising step commits exactly one token at
+  the frontier (left-to-right). A sliding window of $W{=}16$ positions behind the
+  frontier stays revisable through the model's trained T2T gate (one rewrite shown in
+  red); positions farther from the frontier are dry and are never touched again.}
+  \label{fig:method}
+\end{figure}
+
+\input{sec_background}
+\input{sec_method}
+\input{sec_setup}
+\input{sec_results}
+\input{sec_closing}
+
+% ===================== References =====================
+\begin{thebibliography}{20}\small
+
+\bibitem{llada}
+S.~Nie, F.~Zhu, Z.~You, X.~Zhang, J.~Ou, J.~Hu, J.~Zhou, Y.~Lin, J.-R. Wen, and
+C.~Li.
+\newblock Large language diffusion models.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2025.
+\newblock arXiv:2502.09992.
+
+\bibitem{llada22mini}
+inclusionAI.
+\newblock LLaDA2.2-mini: a lightweight agentic MoE diffusion language model with
+Levenshtein editing.
+\newblock Hugging Face model card, 2026.
+\newblock \url{https://huggingface.co/inclusionAI/LLaDA2.2-mini}.
+
+\bibitem{llada21}
+T.~Bie, M.~Cao, X.~Cao, B.~Chen, F.~Chen, K.~Chen, et~al.
+\newblock LLaDA2.1: speeding up text diffusion via token editing.
+\newblock arXiv preprint arXiv:2602.08676, 2026.
+
+\bibitem{dream7b}
+J.~Ye, Z.~Xie, L.~Zheng, J.~Gao, Z.~Wu, X.~Jiang, Z.~Li, and L.~Kong.
+\newblock Dream 7B: diffusion large language models.
+\newblock arXiv preprint arXiv:2508.15487, 2025.
+
+\bibitem{bd3lm}
+M.~Arriola, A.~Gokaslan, J.~T. Chiu, Z.~Yang, Z.~Qi, J.~Han, S.~S. Sahoo, and
+V.~Kuleshov.
+\newblock Block diffusion: interpolating between autoregressive and diffusion language
+models.
+\newblock In \emph{International Conference on Learning Representations (ICLR), Oral}, 2025.
+\newblock arXiv:2503.09573.
+
+\bibitem{setdiffusion}
+M.~Arriola, A.~Gokaslan, J.~T. Chiu, Z.~Yang, Z.~Qi, J.~Han, S.~S. Sahoo, and
+V.~Kuleshov.
+\newblock Set diffusion: interpolating token orderings between autoregression and
+diffusion for fast and flexible decoding.
+\newblock In \emph{International Conference on Machine Learning (ICML)}, 2026.
+\newblock arXiv:2607.01775.
+
+\bibitem{levt}
+J.~Gu, C.~Wang, and J.~Zhao.
+\newblock Levenshtein transformer.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2019.
+\newblock arXiv:1905.11006.
+
+\bibitem{remeval}
+S.~Frkovi\'c, M.~Jazbec, D.~Zhang, C.~A. Naesseth, I.~Bogunovic, and
+E.~Nalisnick.
+\newblock Re-evaluating confidence remasking in masked diffusion language models.
+\newblock In \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2026.
+\newblock arXiv:2606.12232.
+
+\bibitem{remedi}
+Z.~Huang, Y.~Wang, Z.~Chen, and G.-J. Qi.
+\newblock Don't settle too early: self-reflective remasking for diffusion language
+models.
+\newblock arXiv preprint arXiv:2509.23653, 2025.
+
+\bibitem{codr}
+Y.~Wu, Q.~Zhang, Y.~Zhang, and J.~Huang.
+\newblock CoDR: training-free confidence-drift remasking for diffusion language
+models.
+\newblock arXiv preprint arXiv:2610.08833, 2026.
+
+\bibitem{fastdllm}
+C.~Wu, H.~Zhang, S.~Xue, Z.~Liu, S.~Diao, L.~Zhu, P.~Luo, S.~Han, and E.~Xie.
+\newblock Fast-dLLM: training-free fast diffusion large language model inference.
+\newblock arXiv preprint arXiv:2505.22618, 2025.
+
+\bibitem{apd}
+D.~Israel, G.~Van~den~Broeck, and A.~Grover.
+\newblock Accelerating diffusion LLMs via adaptive parallel decoding.
+\newblock arXiv preprint arXiv:2506.00413, 2025.
+
+\bibitem{jys}
+Y.-H. Park, C.-H. Lai, S.~Hayakawa, Y.~Takida, and Y.~Mitsufuji.
+\newblock Jump your steps: optimizing sampling schedule of discrete diffusion models.
+\newblock arXiv preprint arXiv:2410.07761, 2024.
+
+\bibitem{proseco}
+Y.~Schiff, O.~Belhasin, R.~Uziel, G.~Wang, M.~Arriola, G.~Turok, R.~Zilberstein,
+M.~Elad, and V.~Kuleshov.
+\newblock Learn from your mistakes: self-correcting masked diffusion models.
+\newblock arXiv preprint arXiv:2602.11590, 2026.
+
+\bibitem{saber}
+Y.~Dong, Z.~Ma, X.~Jiang, et~al.
+\newblock Saber: an efficient sampling with adaptive acceleration and backtracking
+enhanced remasking for diffusion language models.
+\newblock arXiv preprint arXiv:2510.18165, 2025.
+
+\end{thebibliography}
+
+\end{document}
