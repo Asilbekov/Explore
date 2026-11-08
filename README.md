@@ -1,5 +1,6 @@
 # Wet-Ink: ревизия открытых токенов — от Nemotron (v1–v3) через LLaDA2.2-mini (v4) к собственному wet-ink декодеру (v5)
 
+[![Paper website](https://img.shields.io/badge/Paper_website-wetink.space--z.ai-6e40c7)](https://wetink.space-z.ai)
 [![HF Model](https://img.shields.io/badge/%F0%9F%A4%97_HF-wet--ink--v5-FFD21E)](https://huggingface.co/Freedomform/wet-ink-v5)
 [![HF Space](https://img.shields.io/badge/%F0%9F%A4%97_Space-interactive_demo-blue)](https://huggingface.co/spaces/Freedomform/wet-ink)
 [![Report](https://img.shields.io/badge/PDF-technical_report_v5-red)](https://github.com/Asilbekov/Explore/blob/main/docs/wet-ink-report-v5.pdf)
@@ -16,6 +17,7 @@
 > Implemented on LLaDA2.2-mini with zero formula invention; paired GSM8K
 > evaluation vs the stock decoder: exact McNemar **p = 1.0** at a structural
 > ×4.88 NFE — an honest negative result. Full story in the
+> [paper website](https://wetink.space-z.ai), the
 > [model card / article](https://huggingface.co/Freedomform/wet-ink-v5) and the
 > [interactive demo](https://huggingface.co/spaces/Freedomform/wet-ink).
 
@@ -235,6 +237,8 @@ transfer schedule. → v5: собственный цикл декодирова�
 [🤗 Freedomform/wet-ink-v5](https://huggingface.co/Freedomform/wet-ink-v5),
 интерактивная демо —
 [🤗 Space Freedomform/wet-ink](https://huggingface.co/spaces/Freedomform/wet-ink),
+**paper-сайт** (статья в виде сайта, в стиле HF Papers) —
+[wetink.space-z.ai](https://wetink.space-z.ai),
 **paper-preprint** (арXiv-готовый, LaTeX) —
 [`paper/wet-ink-paper.pdf`](paper/wet-ink-paper.pdf).
 
@@ -389,6 +393,7 @@ out, nfe, stats = generate_wet_ink(model, ids, max_new_tokens=256, block_length=
 - **Wet-Ink v5 на Hugging Face**: карточка-статья
   [Freedomform/wet-ink-v5](https://huggingface.co/Freedomform/wet-ink-v5),
   интерактивная демо [Freedomform/wet-ink](https://huggingface.co/spaces/Freedomform/wet-ink)
+- **Paper-сайт Wet-Ink** (статья в виде сайта): [wetink.space-z.ai](https://wetink.space-z.ai)
 
 - Nemotron-Labs-Diffusion: модель `nvidia/Nemotron-Labs-Diffusion-3B` (HF),
   github.com/NVlabs/Nemotron-Labs-Diffusion (Apache-2.0)
