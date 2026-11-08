@@ -1,5 +1,24 @@
 # Wet-Ink: ревизия открытых токенов — от Nemotron (v1–v3) через LLaDA2.2-mini (v4) к собственному wet-ink декодеру (v5)
 
+[![HF Model](https://img.shields.io/badge/%F0%9F%A4%97_HF-wet--ink--v5-FFD21E)](https://huggingface.co/Freedomform/wet-ink-v5)
+[![HF Space](https://img.shields.io/badge/%F0%9F%A4%97_Space-interactive_demo-blue)](https://huggingface.co/spaces/Freedomform/wet-ink)
+[![Report](https://img.shields.io/badge/PDF-technical_report_v5-red)](https://github.com/Asilbekov/Explore/blob/main/docs/wet-ink-report-v5.pdf)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://github.com/Asilbekov/Explore/blob/main/LICENSE)
+
+<div align="center">
+  <img src="docs/wet_ink_decoding.gif" alt="Wet-ink decoding: the frontier commits one token per step; a sliding window W stays editable; beyond it ink is dry" width="88%"/>
+</div>
+
+> **EN** · Wet-Ink is an inference-time decoding method for diffusion language
+> models: a one-token left-to-right **frontier** commits tokens, while a sliding
+> **window of W tokens** behind it stays editable through the base model's own
+> trained T2T gate; at distance W the ink **dries** — tokens freeze forever.
+> Implemented on LLaDA2.2-mini with zero formula invention; paired GSM8K
+> evaluation vs the stock decoder: exact McNemar **p = 1.0** at a structural
+> ×4.88 NFE — an honest negative result. Full story in the
+> [model card / article](https://huggingface.co/Freedomform/wet-ink-v5) and the
+> [interactive demo](https://huggingface.co/spaces/Freedomform/wet-ink).
+
 Реализация идеи **«мокрого чернила»** для `nvidia/Nemotron-Labs-Diffusion-3B`:
 диффузионный фронтир открывает токены слева направо, а уже открытые токены в
 ограниченном **окне ревизии** позади фронтира остаются поправимыми, пока
@@ -212,6 +231,11 @@ transfer schedule. → v5: собственный цикл декодирова�
 
 ## v5: собственный wet-ink декодер (freedomform/wet-ink-v5)
 
+**Опубликовано:** карточка-статья и все артефакты —
+[🤗 Freedomform/wet-ink-v5](https://huggingface.co/Freedomform/wet-ink-v5),
+интерактивная демо —
+[🤗 Space Freedomform/wet-ink](https://huggingface.co/spaces/Freedomform/wet-ink).
+
 Ядро `kaggle_v5/kernel.py` (1 153 строки) — первый собственный цикл
 декодирования в проекте, целиком из штатных формул модели (правило (г)
 соблюдено: новые формулы не вводились, изменён только порядок применения
@@ -324,6 +348,8 @@ scripts/
 docs/
   wet-ink-report-v3.pdf     # отчёт v3.0 (Nemotron)
   wet-ink-report-v5.pdf     # отчёт v5.0 (полный: v3 + v4b + v5)
+  wet_ink_decoding.gif      # анимация декодера (баннер HF-карточки и этого README)
+  chart_v5_gsm8k_en.png     # чарт результатов v5 (EN, для карточки HF)
 ```
 
 ## Воспроизведение
@@ -351,6 +377,10 @@ out, nfe, stats = generate_wet_ink(model, ids, max_new_tokens=256, block_length=
 4. Fast-dLLM-кэш поверх LLaDA2 (ортогонально правке).
 
 ## Источники
+
+- **Wet-Ink v5 на Hugging Face**: карточка-статья
+  [Freedomform/wet-ink-v5](https://huggingface.co/Freedomform/wet-ink-v5),
+  интерактивная демо [Freedomform/wet-ink](https://huggingface.co/spaces/Freedomform/wet-ink)
 
 - Nemotron-Labs-Diffusion: модель `nvidia/Nemotron-Labs-Diffusion-3B` (HF),
   github.com/NVlabs/Nemotron-Labs-Diffusion (Apache-2.0)
